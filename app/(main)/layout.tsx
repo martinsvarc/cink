@@ -13,6 +13,11 @@ export default function MainLayout({
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [displayChildren, setDisplayChildren] = useState(children);
 
+  // ADD THIS FIRST - Cleanup stuck overlays
+  useEffect(() => {
+    document.querySelectorAll('.page-wave-transition').forEach(el => el.remove());
+  }, []);
+
   useEffect(() => {
     // Trigger page transition animation
     setIsTransitioning(true);

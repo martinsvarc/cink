@@ -130,134 +130,143 @@ export default function Stream() {
   const totalProvision = submissionProvision + timeBonus;
 
   return (
-    <div className="min-h-screen overflow-y-auto pb-20">
-      {/* PŘIDAT PLATBU - Moved to Top */}
-      <div className="mb-6">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center space-x-3">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center">
-              <Zap className="w-6 h-6 text-white" />
-            </div>
-            <div>
-              <h2 className="text-2xl font-bold text-[rgb(var(--foreground))] uppercase tracking-wider">
-                PŘIDAT PLATBU
-              </h2>
-              <p className="text-[rgb(var(--muted-foreground))] text-sm">
-                Nová platba od klienta • Rychlé zadání s inteligentní kalkulací
-              </p>
-            </div>
-          </div>
-        </div>
+    <div className="min-h-screen w-full max-w-full overflow-x-hidden pb-20">
+      <div className="w-full max-w-7xl mx-auto px-4 space-y-8">
         
-        <AddPaymentForm 
-          onAddPayment={handleAddPayment}
-          currentProvision={totalProvision}
-        />
-      </div>
-
-      {/* Progress Bar Section */}
-      <div className="mb-6">
-        <div className="flex items-center space-x-3 mb-4">
-          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
-            <DollarSign className="w-6 h-6 text-white" />
-          </div>
-          <div>
-            <h2 className="text-2xl font-bold text-[rgb(var(--foreground))] uppercase tracking-wider">
-              REVENUE PROGRESS
-            </h2>
-            <p className="text-[rgb(var(--muted-foreground))] text-sm">
-              Dnešní výkonnost a provizní systém
-            </p>
-          </div>
-        </div>
-        
-        <StreamProgressBar 
-          currentRevenue={currentSetter.todayRevenue}
-          provisionRate={currentSetter.provisionRate}
-          nextMilestone={currentSetter.nextMilestone}
-          timeBonus={timeBonus}
-        />
-      </div>
-
-      {/* Personal Earnings Overview - Full Width Row */}
-      <div className="mb-6">
-        <div className="flex items-center space-x-3 mb-4">
-          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-500 flex items-center justify-center">
-            <TrendingUp className="w-6 h-6 text-white" />
-          </div>
-          <div>
-            <h2 className="text-2xl font-bold text-[rgb(var(--foreground))] uppercase tracking-wider">
-              OSOBNÍ VÝDĚLKY
-            </h2>
-            <p className="text-[rgb(var(--muted-foreground))] text-sm">
-              Tvoje výkonnost a provize • Přehled všech období
-            </p>
-          </div>
-        </div>
-        
-        <PersonalEarningsCards earnings={earningsData} />
-      </div>
-
-      {/* Bottom Section - Further Adjusted Column Widths */}
-      <div className="grid grid-cols-12 gap-6">
-        {/* Daily Leaderboard - Further Reduced Width (30% less from current) */}
-        <div className="col-span-3">
-          <div className="flex items-center space-x-3 mb-4">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-yellow-400 to-orange-500 flex items-center justify-center">
-              <Trophy className="w-6 h-6 text-white" />
-            </div>
-            <div>
-              <h2 className="text-xl font-bold text-[rgb(var(--foreground))] uppercase tracking-wider">
-                ŽEBŘÍČEK
-              </h2>
-              <p className="text-[rgb(var(--muted-foreground))] text-sm">
-                Soutěž mezi operátory
-              </p>
-            </div>
-          </div>
-          
-          <div className="h-96">
-            <DailyLeaderboard data={leaderboardData} />
-          </div>
-        </div>
-
-        {/* My Transactions Table - Further Expanded Width with Status Filters */}
-        <div className="col-span-9">
+        {/* PŘIDAT PLATBU - Top Section */}
+        <section className="w-full">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center space-x-3">
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-orange-500 to-red-500 flex items-center justify-center">
-                <Receipt className="w-6 h-6 text-white" />
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center">
+                <Zap className="w-6 h-6 text-white" />
               </div>
               <div>
-                <h2 className="text-xl font-bold text-[rgb(var(--foreground))] uppercase tracking-wider">
-                  MOJE TRANSAKCE
+                <h2 className="text-2xl font-bold text-[rgb(var(--foreground))] uppercase tracking-wider">
+                  PŘIDAT PLATBU
                 </h2>
                 <p className="text-[rgb(var(--muted-foreground))] text-sm">
-                  Přehled tvých plateb • Detailní historie
+                  Nová platba od klienta • Rychlé zadání s inteligentní kalkulací
                 </p>
               </div>
             </div>
-            
-            {/* Date Filter Component */}
-            <div className="flex items-center space-x-2">
-              <input
-                type="date"
-                className="px-3 py-1.5 rounded-lg bg-[rgba(var(--velvet-gray),0.5)] border border-[rgba(var(--neon-orchid),0.2)] text-[rgb(var(--foreground))] text-sm focus:outline-none focus:border-[rgba(var(--neon-orchid),0.5)]"
-                defaultValue={new Date().toISOString().split('T')[0]}
-              />
-              <span className="text-[rgb(var(--muted-foreground))] text-sm">–</span>
-              <input
-                type="date"
-                className="px-3 py-1.5 rounded-lg bg-[rgba(var(--velvet-gray),0.5)] border border-[rgba(var(--neon-orchid),0.2)] text-[rgb(var(--foreground))] text-sm focus:outline-none focus:border-[rgba(var(--neon-orchid),0.5)]"
-                defaultValue={new Date().toISOString().split('T')[0]}
-              />
+          </div>
+          
+          <div className="w-full">
+            <AddPaymentForm 
+              onAddPayment={handleAddPayment}
+              currentProvision={totalProvision}
+            />
+          </div>
+        </section>
+
+        {/* Progress Bar Section */}
+        <section className="w-full">
+          <div className="flex items-center space-x-3 mb-4">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
+              <DollarSign className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <h2 className="text-2xl font-bold text-[rgb(var(--foreground))] uppercase tracking-wider">
+                REVENUE PROGRESS
+              </h2>
+              <p className="text-[rgb(var(--muted-foreground))] text-sm">
+                Dnešní výkonnost a provizní systém
+              </p>
             </div>
           </div>
           
-          <div className="glow-card p-0 overflow-hidden h-96">
-            <MyTransactionsTable transactions={payments} />
+          <StreamProgressBar 
+            currentRevenue={currentSetter.todayRevenue}
+            provisionRate={currentSetter.provisionRate}
+            nextMilestone={currentSetter.nextMilestone}
+            timeBonus={timeBonus}
+          />
+        </section>
+
+        {/* Personal Earnings Overview */}
+        <section className="w-full">
+          <div className="flex items-center space-x-3 mb-4">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-500 flex items-center justify-center">
+              <TrendingUp className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <h2 className="text-2xl font-bold text-[rgb(var(--foreground))] uppercase tracking-wider">
+                OSOBNÍ VÝDĚLKY
+              </h2>
+              <p className="text-[rgb(var(--muted-foreground))] text-sm">
+                Tvoje výkonnost a provize • Přehled všech období
+              </p>
+            </div>
           </div>
-        </div>
+          
+          <PersonalEarningsCards earnings={earningsData} />
+        </section>
+
+        {/* Bottom Section - Fixed Layout */}
+        <section className="w-full">
+          <div className="flex flex-col lg:flex-row gap-6">
+            
+            {/* Daily Leaderboard */}
+            <div className="w-full lg:w-80 flex-shrink-0">
+              <div className="flex items-center space-x-3 mb-4">
+                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-yellow-400 to-orange-500 flex items-center justify-center">
+                  <Trophy className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold text-[rgb(var(--foreground))] uppercase tracking-wider">
+                    ŽEBŘÍČEK
+                  </h2>
+                  <p className="text-[rgb(var(--muted-foreground))] text-sm">
+                    Soutěž mezi operátory
+                  </p>
+                </div>
+              </div>
+              
+              <div className="h-96">
+                <DailyLeaderboard data={leaderboardData} />
+              </div>
+            </div>
+
+            {/* My Transactions Table */}
+            <div className="flex-1 min-w-0">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-4">
+                <div className="flex items-center space-x-3">
+                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-orange-500 to-red-500 flex items-center justify-center">
+                    <Receipt className="w-6 h-6 text-white" />
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-bold text-[rgb(var(--foreground))] uppercase tracking-wider">
+                      MOJE TRANSAKCE
+                    </h2>
+                    <p className="text-[rgb(var(--muted-foreground))] text-sm">
+                      Přehled tvých plateb • Detailní historie
+                    </p>
+                  </div>
+                </div>
+                
+                {/* Date Filter Component */}
+                <div className="flex items-center space-x-2 flex-shrink-0">
+                  <input
+                    type="date"
+                    className="px-3 py-1.5 rounded-lg bg-[rgba(var(--velvet-gray),0.5)] border border-[rgba(var(--neon-orchid),0.2)] text-[rgb(var(--foreground))] text-sm focus:outline-none focus:border-[rgba(var(--neon-orchid),0.5)]"
+                    defaultValue={new Date().toISOString().split('T')[0]}
+                  />
+                  <span className="text-[rgb(var(--muted-foreground))] text-sm">–</span>
+                  <input
+                    type="date"
+                    className="px-3 py-1.5 rounded-lg bg-[rgba(var(--velvet-gray),0.5)] border border-[rgba(var(--neon-orchid),0.2)] text-[rgb(var(--foreground))] text-sm focus:outline-none focus:border-[rgba(var(--neon-orchid),0.5)]"
+                    defaultValue={new Date().toISOString().split('T')[0]}
+                  />
+                </div>
+              </div>
+              
+              <div className="glow-card p-0 overflow-hidden h-96">
+                <MyTransactionsTable transactions={payments} />
+              </div>
+            </div>
+          </div>
+        </section>
+
       </div>
 
       {/* Fixed Timer in Bottom Right */}

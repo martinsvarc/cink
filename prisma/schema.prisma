@@ -1,0 +1,286 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id               String   @id @default(cuid())
+  name             String?
+  username         String   @unique
+  avatarUrl        String?
+  email            String?  @unique
+  role             String
+  status           String   @default("active")
+  passwordHash     String
+  lastLogin        DateTime?
+  viewOnlyAssigned Boolean  @default(true)
+  createdAt        DateTime @default(now())
+
+  chatter          Chatter?
+  notifications    Notification[]
+}
+
+model Chatter {
+  id                      String   @id @default(cuid())
+  userId                  String   @unique
+  hourlyRate              Int
+  defaultCommission       Float
+  milestoneTiers          Json     // Store as [{amount: 100000, bonus: 5000}, ...]
+  weekendBonusMultiplier  Float
+  wildcardBonusMultiplier Float
+  isActive                Boolean  @default(true)
+
+  user             User    @relation(fields: [userId], references: [id])
+  workSessions     WorkSession[]
+  payments         Payment[]
+  performance      PerformanceMetric[]
+  goals            Goal[]
+  transactions     Transaction[] @relation("ChatterTransactions")
+  modelChannels    ModelChannel[]
+  commissionRules  CommissionRule[]
+  assignedClients  Client[] @relation("AssignedClients")
+}
+
+model Model {
+  id             String   @id @default(cuid())
+  name           String
+  platform       String
+  channelHandle  String?
+  adSpend        Int?
+  commissionRate Float?
+  status         String
+
+  persona        ModelPersona?
+  channels       ModelChannel[]
+  payments       Payment[]
+  performance    PerformanceMetric[]
+  campaigns      AdCampaign[]
+  commissionRules CommissionRule[]
+}
+
+model ModelPersona {
+  id            String   @id @default(cuid())
+  modelId       String   @unique
+  description   String?
+  tags          String[]
+  statusNote    String?
+  lastEditedBy  String?
+  updatedAt     DateTime @updatedAt
+
+  model         Model    @relation(fields: [modelId], references: [id])
+}
+
+model ModelChannel {
+  id          String   @id @default(cuid())
+  modelId     String
+  platform    String   // Standardized: "whatsapp", "facebook", "telegram", etc.
+  channelName String
+  chatterId   String?
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  model       Model    @relation(fields: [modelId], references: [id])
+  chatter     Chatter? @relation(fields: [chatterId], references: [id])
+}
+
+model Client {
+  id             String   @id @default(cuid())
+  name           String
+  notes          String?
+  payday         DateTime?
+  channel        String?
+  statusIndicator String?
+  priorityScore  Int?
+  profileUrl     String?  @unique // Used to prevent duplicates
+  assignedChatterId String? // Current owner of this client
+  createdAt      DateTime @default(now())
+
+  assignedChatter Chatter? @relation("AssignedClients", fields: [assignedChatterId], references: [id])
+  tags           ClientTag[]
+  payments       Payment[]
+}
+
+model ClientTag {
+  id        String   @id @default(cuid())
+  clientId  String
+  label     String
+  createdAt DateTime @default(now())
+  score     Int?
+
+  client    Client   @relation(fields: [clientId], references: [id])
+}
+
+// Added Account entity for proper financial tracking
+model Account {
+  id            String   @id @default(cuid())
+  name          String   @unique // "Wise USD", "Crypto Wallet", etc.
+  type          String   // "bank", "crypto", "paypal"
+  balance       Int      @default(0)
+  currency      String   @default("CZK")
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+
+  transactionsFrom Transaction[] @relation("FromAccount")
+  transactionsTo   Transaction[] @relation("ToAccount")
+}
+
+model Payment {
+  id         String   @id @default(cuid())
+  amount     Int
+  chatterId  String
+  modelId    String
+  clientId   String
+  channel    String
+  category   String
+  timestamp  DateTime @default(now())
+  notes      String?
+  toAccount  String?
+  source     String?
+  cinklo     Boolean  @default(false)
+  hotovo     Boolean  @default(false)
+  screenshot String?  // URL to uploaded screenshot
+  // Link to work session if payment happened during active session
+  workSessionId String?
+  
+  // Commission calculation fields - calculated when CINKLO is checked
+  dailyVolumeAtTime Int?     // Total daily volume when this payment was made
+  commissionEarned  Int?     // Commission earned from this payment (recalculated if CINKLO unchecked)
+  commissionRate    Float?   // Rate that was active when payment was made
+  thresholdMet      Boolean  @default(false) // Whether threshold was met when this payment was processed
+  
+  // Tracking fields
+  cinkoProcessedAt  DateTime? // When CINKLO was checked
+  hotovoProcessedAt DateTime? // When HOTOVO was checked
+
+  chatter    Chatter  @relation(fields: [chatterId], references: [id])
+  model      Model    @relation(fields: [modelId], references: [id])
+  client     Client   @relation(fields: [clientId], references: [id])
+  workSession WorkSession? @relation(fields: [workSessionId], references: [id])
+  activity   ActivityLog?
+  transaction Transaction?
+}
+
+model Goal {
+  id           String   @id @default(cuid())
+  chatterId    String
+  targetAmount Int      // Daily volume threshold for commission
+  commissionRate Float  // Commission percentage once threshold is met
+  date         DateTime // Specific date this goal/rate applies to
+  goalType     String   @default("daily") // Always daily for your system
+  metricType   String   @default("volume") // Always volume for your system
+  isActive     Boolean  @default(true)
+
+  chatter      Chatter  @relation(fields: [chatterId], references: [id])
+  
+  @@unique([chatterId, date])
+}
+
+model Transaction {
+  id         String   @id @default(cuid())
+  paymentId  String?  @unique
+  type       String   // "income", "expense", "transfer", "payout"
+  amount     Int
+  fromAccountId String?
+  toAccountId   String?
+  timestamp  DateTime @default(now())
+  method     String?
+  note       String?
+  operatorId String?
+
+  payment    Payment? @relation(fields: [paymentId], references: [id])
+  fromAccount Account? @relation("FromAccount", fields: [fromAccountId], references: [id])
+  toAccount   Account? @relation("ToAccount", fields: [toAccountId], references: [id])
+  chatter    Chatter? @relation("ChatterTransactions", fields: [operatorId], references: [id])
+}
+
+model CommissionRule {
+  id         String   @id @default(cuid())
+  chatterId  String
+  modelId    String?   // Null = applies to all models for this chatter
+  category   String?   // Null = applies to all categories
+  percentage Float
+  isActive   Boolean   @default(true)
+  createdAt  DateTime  @default(now())
+
+  chatter    Chatter   @relation(fields: [chatterId], references: [id])
+  model      Model?    @relation(fields: [modelId], references: [id])
+  
+  @@unique([chatterId, modelId, category])
+}
+
+model ActivityLog {
+  id         String   @id @default(cuid())
+  paymentId  String   @unique
+  createdBy  String
+  actionType String
+  timestamp  DateTime @default(now())
+  details    Json?    // Store additional context
+
+  payment    Payment  @relation(fields: [paymentId], references: [id])
+}
+
+model PerformanceMetric {
+  id          String   @id @default(cuid())
+  chatterId   String?
+  modelId     String?
+  date        DateTime
+  totalMade   Int
+  totalCost   Int
+  hoursWorked Int
+  createdAt   DateTime @default(now())
+
+  chatter     Chatter? @relation(fields: [chatterId], references: [id])
+  model       Model?   @relation(fields: [modelId], references: [id])
+  
+  @@unique([chatterId, modelId, date])
+}
+
+model AdCampaign {
+  id              String   @id @default(cuid())
+  modelId         String
+  spend           Int
+  return          Int
+  responseTime    Int
+  newFollowers    Int
+  newSubscribers  Int
+  lostSubscribers Int
+  roi             Float
+  date            DateTime
+  createdAt       DateTime @default(now())
+
+  model           Model    @relation(fields: [modelId], references: [id])
+}
+
+model WorkSession {
+  id                String   @id @default(cuid())
+  chatterId         String
+  startTime         DateTime
+  endTime           DateTime?
+  durationMinutes   Int?
+  calculatedEarnings Int?     // Hourly wage earned
+  milestoneBonus    Int?     // Bonus earned if daily threshold met
+  totalCommission   Int?     // Total commission earned during this session
+  status            String   @default("active") // "active", "paused", "completed", "auto_stopped"
+  autoStoppedAt     DateTime? // If auto-stopped due to inactivity/midnight
+  createdAt         DateTime @default(now())
+
+  chatter           Chatter  @relation(fields: [chatterId], references: [id])
+  payments          Payment[] // Link payments to sessions
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  title     String
+  body      String
+  type      String   // "payment", "goal", "milestone", "system"
+  userId    String
+  createdAt DateTime @default(now())
+  read      Boolean  @default(false)
+  metadata  Json?    // Store additional data like payment amount, etc.
+
+  user      User     @relation(fields: [userId], references: [id])
+}
