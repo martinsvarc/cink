@@ -15,8 +15,7 @@ export function AddAccountModal({ isOpen, onClose, onAddAccount }: AddAccountMod
     name: '',
     type: 'bank',
     currentBalance: '',
-    income: { today: 0, week: 0, month: 0, custom: 0 },
-    expenses: { today: 0, week: 0, month: 0, custom: 0 }
+    currency: 'CZK'
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -37,8 +36,7 @@ export function AddAccountModal({ isOpen, onClose, onAddAccount }: AddAccountMod
       name: '',
       type: 'bank',
       currentBalance: '',
-      income: { today: 0, week: 0, month: 0, custom: 0 },
-      expenses: { today: 0, week: 0, month: 0, custom: 0 }
+      currency: 'CZK'
     });
   };
 
@@ -175,8 +173,25 @@ export function AddAccountModal({ isOpen, onClose, onAddAccount }: AddAccountMod
                 onChange={(e) => setFormData(prev => ({ ...prev, currentBalance: e.target.value }))}
                 className="w-full px-3 py-2 rounded-lg bg-[rgba(var(--velvet-gray),0.5)] border border-[rgba(var(--neon-orchid),0.2)] text-[rgb(var(--foreground))] focus:outline-none focus:border-[rgba(var(--neon-orchid),0.5)]"
                 placeholder="0.00"
+                step="0.01"
                 required
               />
+            </div>
+
+            {/* Currency */}
+            <div>
+              <label className="block text-sm font-medium text-[rgb(var(--foreground))] mb-2">
+                Currency
+              </label>
+              <select
+                value={formData.currency}
+                onChange={(e) => setFormData(prev => ({ ...prev, currency: e.target.value }))}
+                className="w-full px-3 py-2 rounded-lg bg-[rgba(var(--velvet-gray),0.5)] border border-[rgba(var(--neon-orchid),0.2)] text-[rgb(var(--foreground))] focus:outline-none focus:border-[rgba(var(--neon-orchid),0.5)]"
+              >
+                <option value="CZK">CZK</option>
+                <option value="USD">USD</option>
+                <option value="EUR">EUR</option>
+              </select>
             </div>
           </div>
 

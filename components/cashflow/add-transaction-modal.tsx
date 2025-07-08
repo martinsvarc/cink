@@ -5,7 +5,7 @@ import { X, Save, Upload } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface Account {
-  id: number;
+  id: string;
   name: string;
   type: string;
 }

@@ -38,7 +38,7 @@ export async function recalculateCommissions(
   });
 
   // Calculate total daily volume
-  const totalDailyVolume = cinkoPayments.reduce((sum, payment) => sum + payment.amount, 0);
+  const totalDailyVolume = cinkoPayments.reduce((sum: number, payment: any) => sum + payment.amount, 0);
 
   // Get the goal/commission rate for this date
   const goal = await prisma.goal.findFirst({
@@ -111,7 +111,6 @@ export async function handleClientAssignment(
       data: {
         assignedChatterId: chatterId,
         name: clientData.name, // Update name in case it changed
-        notes: clientData.notes,
         channel: clientData.channel
       }
     });
@@ -124,7 +123,6 @@ export async function handleClientAssignment(
         name: clientData.name,
         profileUrl,
         assignedChatterId: chatterId,
-        notes: clientData.notes,
         channel: clientData.channel
       }
     });
@@ -155,8 +153,8 @@ export async function getChatterEarnings(chatterId: string, date: Date) {
     }
   });
 
-  const totalVolume = payments.reduce((sum, p) => sum + p.amount, 0);
-  const totalCommission = payments.reduce((sum, p) => sum + (p.commissionEarned || 0), 0);
+  const totalVolume = payments.reduce((sum: number, p: any) => sum + p.amount, 0);
+  const totalCommission = payments.reduce((sum: number, p: any) => sum + (p.commissionEarned || 0), 0);
 
   // Get hourly earnings from work sessions
   const workSessions = await prisma.workSession.findMany({
@@ -170,11 +168,11 @@ export async function getChatterEarnings(chatterId: string, date: Date) {
     }
   });
 
-  const hourlyEarnings = workSessions.reduce((sum, session) => {
+  const hourlyEarnings = workSessions.reduce((sum: number, session: any) => {
     return sum + (session.calculatedEarnings || 0);
   }, 0);
 
-  const milestoneBonus = workSessions.reduce((sum, session) => {
+  const milestoneBonus = workSessions.reduce((sum: number, session: any) => {
     return sum + (session.milestoneBonus || 0);
   }, 0);
 

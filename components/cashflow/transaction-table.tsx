@@ -8,7 +8,8 @@ import {
   Check,
   X,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Loader2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -34,6 +35,7 @@ export function TransactionTable({
   const [hoveredRow, setHoveredRow] = useState<number | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(15);
+  const [loadingCheckboxes, setLoadingCheckboxes] = useState<Set<number>>(new Set());
 
   // Filter and sort data
   const filteredData = useMemo(() => {
@@ -97,6 +99,88 @@ export function TransactionTable({
   const handleRowsPerPageChange = (rows: number) => {
     setRowsPerPage(rows);
     setCurrentPage(1); // Reset to first page when changing rows per page
+  };
+
+  const handleApprovalToggle = async (item: any) => {
+    // Only handle payments (income type transactions)
+    if (type !== 'income' || !item.id) return;
+    
+    const action = item.approved ? 'uncinklo' : 'cinklo';
+    
+    // Add to loading set
+    setLoadingCheckboxes(prev => new Set(prev).add(item.id));
+    
+    try {
+      const response = await fetch(`/api/payments/${item.id}/approve`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          action, 
+          adminId: 'admin-user-id' // TODO: Replace with actual admin ID
+        })
+      });
+      
+      if (response.ok) {
+        // Update the item in the data array
+        data.forEach(dataItem => {
+          if (dataItem.id === item.id) {
+            dataItem.approved = !dataItem.approved;
+          }
+        });
+      } else {
+        console.error('Failed to update approval status');
+      }
+    } catch (error) {
+      console.error('Error updating approval status:', error);
+    } finally {
+      // Remove from loading set
+      setLoadingCheckboxes(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(item.id);
+        return newSet;
+      });
+    }
+  };
+
+  const handleDeliveredToggle = async (item: any) => {
+    // Only handle payments (income type transactions)
+    if (type !== 'income' || !item.id) return;
+    
+    const action = item.delivered ? 'unhotovo' : 'hotovo';
+    
+    // Add to loading set
+    setLoadingCheckboxes(prev => new Set(prev).add(item.id));
+    
+    try {
+      const response = await fetch(`/api/payments/${item.id}/approve`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          action, 
+          adminId: 'admin-user-id' // TODO: Replace with actual admin ID
+        })
+      });
+      
+      if (response.ok) {
+        // Update the item in the data array
+        data.forEach(dataItem => {
+          if (dataItem.id === item.id) {
+            dataItem.delivered = !dataItem.delivered;
+          }
+        });
+      } else {
+        console.error('Failed to update delivery status');
+      }
+    } catch (error) {
+      console.error('Error updating delivery status:', error);
+    } finally {
+      // Remove from loading set
+      setLoadingCheckboxes(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(item.id);
+        return newSet;
+      });
+    }
   };
 
   const SortButton = ({ field, children }: { field: string; children: React.ReactNode }) => (
@@ -337,22 +421,44 @@ export function TransactionTable({
       </td>
       <td className="px-3 py-3 text-sm">
         <div className="flex items-center justify-center">
-          <div className={cn(
-            'w-5 h-5 rounded flex items-center justify-center',
-            item.approved ? 'bg-green-500' : 'border-2 border-[rgba(var(--velvet-gray),0.5)]'
-          )}>
-            {item.approved && <Check className="w-3 h-3 text-white" />}
-          </div>
+          <button
+            onClick={() => handleApprovalToggle(item)}
+            disabled={loadingCheckboxes.has(item.id)}
+            className={cn(
+              'w-5 h-5 rounded flex items-center justify-center transition-all duration-200',
+              item.approved ? 'bg-green-500' : 'border-2 border-[rgba(var(--velvet-gray),0.5)]',
+              loadingCheckboxes.has(item.id) 
+                ? 'cursor-not-allowed opacity-50' 
+                : 'cursor-pointer hover:scale-110'
+            )}
+          >
+            {loadingCheckboxes.has(item.id) ? (
+              <Loader2 className="w-3 h-3 animate-spin text-white" />
+            ) : (
+              item.approved && <Check className="w-3 h-3 text-white" />
+            )}
+          </button>
         </div>
       </td>
       <td className="px-3 py-3 text-sm">
         <div className="flex items-center justify-center">
-          <div className={cn(
-            'w-5 h-5 rounded flex items-center justify-center',
-            item.delivered ? 'bg-blue-500' : 'border-2 border-[rgba(var(--velvet-gray),0.5)]'
-          )}>
-            {item.delivered && <Check className="w-3 h-3 text-white" />}
-          </div>
+          <button
+            onClick={() => handleDeliveredToggle(item)}
+            disabled={loadingCheckboxes.has(item.id)}
+            className={cn(
+              'w-5 h-5 rounded flex items-center justify-center transition-all duration-200',
+              item.delivered ? 'bg-blue-500' : 'border-2 border-[rgba(var(--velvet-gray),0.5)]',
+              loadingCheckboxes.has(item.id) 
+                ? 'cursor-not-allowed opacity-50' 
+                : 'cursor-pointer hover:scale-110'
+            )}
+          >
+            {loadingCheckboxes.has(item.id) ? (
+              <Loader2 className="w-3 h-3 animate-spin text-white" />
+            ) : (
+              item.delivered && <Check className="w-3 h-3 text-white" />
+            )}
+          </button>
         </div>
       </td>
     </>

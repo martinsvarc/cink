@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import * as React from 'react';
 import { 
   ChevronUp, 
   ChevronDown,
@@ -11,163 +11,27 @@ import {
   Check,
   X,
   Filter,
-  File
+  File,
+  Loader2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-// Mock enhanced activity data - converted to CZK with more entries
-const activityData = [
-  {
-    id: 1,
-    dateTime: '2024-01-15 14:23',
-    amount: 11250,
-    operator: 'Isabella',
-    model: 'Isabella',
-    client: 'Michael_VIP',
-    channel: 'Fanvue',
-    category: 'Premium Video',
-    toAccount: 'Wise USD',
-    notes: 'Custom content request',
-    screenshot: 'screenshot1.jpg',
-    approved: true,
-    delivered: true
-  },
-  {
-    id: 2,
-    dateTime: '2024-01-15 13:45',
-    amount: 5000,
-    operator: 'Sophia',
-    model: 'Natalie',
-    client: 'David_Elite',
-    channel: 'Facebook',
-    category: 'Chat Session',
-    toAccount: 'Crypto Wallet',
-    notes: 'Extended conversation',
-    screenshot: null,
-    approved: true,
-    delivered: false
-  },
-  {
-    id: 3,
-    dateTime: '2024-01-15 12:30',
-    amount: 18750,
-    operator: 'Luna',
-    model: 'Sophia',
-    client: 'James_VIP',
-    channel: 'WhatsApp',
-    category: 'Live Call',
-    toAccount: 'Wise USD',
-    notes: 'Private session',
-    screenshot: 'screenshot2.jpg',
-    approved: false,
-    delivered: false
-  },
-  {
-    id: 4,
-    dateTime: '2024-01-15 11:15',
-    amount: 7500,
-    operator: 'Sarah',
-    model: 'Luna',
-    client: 'Peter_Premium',
-    channel: 'Fanvue',
-    category: 'Tips',
-    toAccount: 'Revolut',
-    notes: 'Appreciation tip',
-    screenshot: null,
-    approved: true,
-    delivered: true
-  },
-  {
-    id: 5,
-    dateTime: '2024-01-15 10:45',
-    amount: 25000,
-    operator: 'Isabella',
-    model: 'Isabella',
-    client: 'Robert_Gold',
-    channel: 'Fanvue',
-    category: 'Custom Content',
-    toAccount: 'Paysafe',
-    notes: 'Special request content',
-    screenshot: 'screenshot3.jpg',
-    approved: true,
-    delivered: true
-  },
-  {
-    id: 6,
-    dateTime: '2024-01-15 09:30',
-    amount: 3750,
-    operator: 'Emma',
-    model: 'Aria',
-    client: 'Alex_Pro',
-    channel: 'WhatsApp',
-    category: 'Chat Session',
-    toAccount: 'Wise USD',
-    notes: 'Morning chat',
-    screenshot: null,
-    approved: false,
-    delivered: false
-  },
-  {
-    id: 7,
-    dateTime: '2024-01-15 08:20',
-    amount: 12500,
-    operator: 'Sophia',
-    model: 'Sophia',
-    client: 'Martin_Whale',
-    channel: 'Fanvue',
-    category: 'Subscription',
-    toAccount: 'Crypto Wallet',
-    notes: 'Monthly subscription',
-    screenshot: null,
-    approved: true,
-    delivered: true
-  },
-  {
-    id: 8,
-    dateTime: '2024-01-15 07:45',
-    amount: 6250,
-    operator: 'Luna',
-    model: 'Luna',
-    client: 'Thomas_Standard',
-    channel: 'Facebook',
-    category: 'Premium Video',
-    toAccount: 'Wise USD',
-    notes: 'Morning content',
-    screenshot: 'screenshot4.jpg',
-    approved: true,
-    delivered: true
-  },
-  {
-    id: 9,
-    dateTime: '2024-01-15 06:30',
-    amount: 15000,
-    operator: 'Isabella',
-    model: 'Isabella',
-    client: 'Richard_VIP',
-    channel: 'WhatsApp',
-    category: 'Live Call',
-    toAccount: 'Revolut',
-    notes: 'Early morning session',
-    screenshot: null,
-    approved: true,
-    delivered: true
-  },
-  {
-    id: 10,
-    dateTime: '2024-01-15 05:15',
-    amount: 8750,
-    operator: 'Sophia',
-    model: 'Natalie',
-    client: 'Paul_Elite',
-    channel: 'Telegram',
-    category: 'Chat Session',
-    toAccount: 'Crypto Wallet',
-    notes: 'Late night chat',
-    screenshot: null,
-    approved: false,
-    delivered: false
-  }
-];
+// Types for the payment data
+interface PaymentData {
+  id: number;
+  dateTime: string;
+  amount: number;
+  operator: string;
+  model: string;
+  client: string;
+  channel: string;
+  category: string;
+  toAccount: string;
+  notes: string;
+  screenshot?: string | null;
+  approved: boolean;
+  delivered: boolean;
+}
 
 interface EnhancedActivityFeedProps {
   currentTimeframe?: string;
@@ -180,13 +44,70 @@ export function EnhancedActivityFeed({
   selectedOperator = 'all',
   enableCheckboxes = false 
 }: EnhancedActivityFeedProps) {
-  const [sortBy, setSortBy] = useState('dateTime');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
-  const [hoveredRow, setHoveredRow] = useState<number | null>(null);
-  const [localData, setLocalData] = useState(activityData);
+  const [sortBy, setSortBy] = React.useState('dateTime');
+  const [sortOrder, setSortOrder] = React.useState<'asc' | 'desc'>('desc');
+  const [hoveredRow, setHoveredRow] = React.useState<number | null>(null);
+  const [localData, setLocalData] = React.useState<PaymentData[]>([]);
+  const [loading, setLoading] = React.useState(true);
+  const [error, setError] = React.useState<string | null>(null);
+  const [loadingCheckboxes, setLoadingCheckboxes] = React.useState<Set<number>>(new Set());
+
+  // Fetch payments data from API
+  React.useEffect(() => {
+    const fetchPayments = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        
+        const response = await fetch('/api/payments');
+        if (!response.ok) {
+          throw new Error(`Failed to fetch payments: ${response.statusText}`);
+        }
+        
+        const data = await response.json();
+        
+        // Check if the response is successful and has payments array
+        if (!data.success || !data.payments) {
+          throw new Error('Invalid API response format');
+        }
+        
+                  // Transform the data to match our expected format
+          const transformedData = data.payments.map((payment: any) => ({
+            id: payment.id,
+            dateTime: new Date(payment.timestamp).toLocaleString('en-GB', {
+              year: 'numeric',
+              month: '2-digit',
+              day: '2-digit',
+              hour: '2-digit',
+              minute: '2-digit'
+            }).replace(',', ''),
+            amount: payment.amount || 0,
+            operator: payment.chatter?.user?.name || 'N/A',
+            model: payment.model?.name || 'N/A',
+            client: payment.client?.name || 'N/A',
+            channel: payment.channel || 'N/A',
+            category: payment.category || 'N/A',
+            toAccount: payment.toAccount || 'N/A',
+            notes: payment.notes || '',
+            screenshot: payment.screenshot || null,
+            approved: payment.cinklo || false,
+            delivered: payment.hotovo || false
+          }));
+        
+        setLocalData(transformedData);
+      } catch (err) {
+        console.error('Error fetching payments:', err);
+        setError(err instanceof Error ? err.message : 'Failed to fetch payments');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPayments();
+  }, []);
 
   // Filter data based on timeframe and operator
-  const filteredData = useMemo(() => {
+  const filteredData = React.useMemo(() => {
     let filtered = [...localData];
     
     // Filter by operator
@@ -203,7 +124,7 @@ export function EnhancedActivityFeed({
   }, [localData, currentTimeframe, selectedOperator]);
 
   // Sort data
-  const sortedData = useMemo(() => {
+  const sortedData = React.useMemo(() => {
     return [...filteredData].sort((a, b) => {
       let aValue: any = a[sortBy as keyof typeof a];
       let bValue: any = b[sortBy as keyof typeof b];
@@ -221,28 +142,96 @@ export function EnhancedActivityFeed({
     });
   }, [filteredData, sortBy, sortOrder]);
 
-  const handleApprovalToggle = (id: number) => {
+  const handleApprovalToggle = async (id: number) => {
     if (!enableCheckboxes) return;
     
-    setLocalData(prev => 
-      prev.map(item => 
-        item.id === id 
-          ? { ...item, approved: !item.approved }
-          : item
-      )
-    );
+    // Find the current item to get its current state
+    const currentItem = localData.find(item => item.id === id);
+    if (!currentItem) return;
+    
+    const action = currentItem.approved ? 'uncinklo' : 'cinklo';
+    
+    // Add to loading set
+    setLoadingCheckboxes(prev => new Set(prev).add(id));
+    
+    try {
+      const response = await fetch(`/api/payments/${id}/approve`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          action, 
+          adminId: 'admin-user-id' // TODO: Replace with actual admin ID
+        })
+      });
+      
+      if (response.ok) {
+        // Update local state
+        setLocalData((prev: PaymentData[]) => 
+          prev.map((item: PaymentData) => 
+            item.id === id 
+              ? { ...item, approved: !item.approved }
+              : item
+          )
+        );
+      } else {
+        console.error('Failed to update approval status');
+      }
+    } catch (error) {
+      console.error('Error updating approval status:', error);
+    } finally {
+      // Remove from loading set
+      setLoadingCheckboxes(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(id);
+        return newSet;
+      });
+    }
   };
 
-  const handleDeliveredToggle = (id: number) => {
+  const handleDeliveredToggle = async (id: number) => {
     if (!enableCheckboxes) return;
     
-    setLocalData(prev => 
-      prev.map(item => 
-        item.id === id 
-          ? { ...item, delivered: !item.delivered }
-          : item
-      )
-    );
+    // Find the current item to get its current state
+    const currentItem = localData.find(item => item.id === id);
+    if (!currentItem) return;
+    
+    const action = currentItem.delivered ? 'unhotovo' : 'hotovo';
+    
+    // Add to loading set
+    setLoadingCheckboxes(prev => new Set(prev).add(id));
+    
+    try {
+      const response = await fetch(`/api/payments/${id}/approve`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          action, 
+          adminId: 'admin-user-id' // TODO: Replace with actual admin ID
+        })
+      });
+      
+      if (response.ok) {
+        // Update local state
+        setLocalData((prev: PaymentData[]) => 
+          prev.map((item: PaymentData) => 
+            item.id === id 
+              ? { ...item, delivered: !item.delivered }
+              : item
+          )
+        );
+      } else {
+        console.error('Failed to update delivery status');
+      }
+    } catch (error) {
+      console.error('Error updating delivery status:', error);
+    } finally {
+      // Remove from loading set
+      setLoadingCheckboxes(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(id);
+        return newSet;
+      });
+    }
   };
 
   const SortButton = ({ field, children }: { field: string; children: React.ReactNode }) => (
@@ -274,6 +263,36 @@ export function EnhancedActivityFeed({
     if (channel.includes('Instagram')) return 'bg-pink-500/20 text-pink-400 border-pink-500/30';
     return 'bg-gray-500/20 text-gray-400 border-gray-500/30';
   };
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className="w-full h-full flex items-center justify-center">
+        <div className="flex items-center space-x-2 text-[rgb(var(--muted-foreground))]">
+          <Loader2 className="w-5 h-5 animate-spin" />
+          <span>Loading payments...</span>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="w-full h-full flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-red-400 text-lg mb-2">Error loading payments</div>
+          <div className="text-[rgb(var(--muted-foreground))] text-sm mb-4">{error}</div>
+          <button 
+            onClick={() => window.location.reload()}
+            className="px-4 py-2 bg-[rgb(var(--neon-orchid))] text-white rounded hover:bg-[rgb(var(--neon-orchid))]/80 transition-colors"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full h-full overflow-hidden">
@@ -433,15 +452,22 @@ export function EnhancedActivityFeed({
                   <div className="flex items-center justify-center h-full">
                     <button
                       onClick={() => handleApprovalToggle(item.id)}
+                      disabled={loadingCheckboxes.has(item.id)}
                       className={cn(
                         'w-4 h-4 rounded border-2 flex items-center justify-center transition-all duration-200',
                         item.approved
                           ? 'bg-green-500 border-green-500 text-white'
                           : 'border-[rgb(var(--muted-foreground))] hover:border-green-500',
-                        'cursor-pointer'
+                        loadingCheckboxes.has(item.id) 
+                          ? 'cursor-not-allowed opacity-50' 
+                          : 'cursor-pointer'
                       )}
                     >
-                      {item.approved && <Check className="w-3 h-3" />}
+                      {loadingCheckboxes.has(item.id) ? (
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                      ) : (
+                        item.approved && <Check className="w-3 h-3" />
+                      )}
                     </button>
                   </div>
                 </td>
@@ -451,15 +477,22 @@ export function EnhancedActivityFeed({
                   <div className="flex items-center justify-center h-full">
                     <button
                       onClick={() => handleDeliveredToggle(item.id)}
+                      disabled={loadingCheckboxes.has(item.id)}
                       className={cn(
                         'w-4 h-4 rounded border-2 flex items-center justify-center transition-all duration-200',
                         item.delivered
                           ? 'bg-blue-500 border-blue-500 text-white'
                           : 'border-[rgb(var(--muted-foreground))] hover:border-blue-500',
-                        'cursor-pointer'
+                        loadingCheckboxes.has(item.id) 
+                          ? 'cursor-not-allowed opacity-50' 
+                          : 'cursor-pointer'
                       )}
                     >
-                      {item.delivered && <Check className="w-3 h-3" />}
+                      {loadingCheckboxes.has(item.id) ? (
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                      ) : (
+                        item.delivered && <Check className="w-3 h-3" />
+                      )}
                     </button>
                   </div>
                 </td>
@@ -469,7 +502,7 @@ export function EnhancedActivityFeed({
         </table>
 
         {/* Empty State */}
-        {sortedData.length === 0 && (
+        {sortedData.length === 0 && !loading && (
           <div className="text-center py-8">
             <div className="text-[rgb(var(--muted-foreground))] text-lg mb-2">No transactions found</div>
             <div className="text-[rgb(var(--muted-foreground))] text-sm">

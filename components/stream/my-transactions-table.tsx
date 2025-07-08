@@ -396,7 +396,7 @@ export function MyTransactionsTable({ transactions }: MyTransactionsTableProps) 
             <div className="flex items-center space-x-1">
               {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
                 // Calculate which page numbers to show
-                let pageNum;
+                let pageNum: number;
                 if (totalPages <= 5) {
                   pageNum = i + 1;
                 } else if (currentPage <= 3) {

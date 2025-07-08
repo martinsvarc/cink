@@ -188,10 +188,7 @@ export async function GET(
       include: {
         chatter: { include: { user: true } },
         model: true,
-        client: true,
-        activity: {
-          orderBy: { timestamp: 'desc' }
-        }
+        client: true
       }
     });
 

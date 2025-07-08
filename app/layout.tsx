@@ -1,6 +1,7 @@
 import './globals.css';
 import type { Metadata } from 'next';
 import { Outfit } from 'next/font/google';
+import { AuthProvider } from '@/lib/auth-context';
 
 const outfit = Outfit({ subsets: ['latin'] });
 
@@ -17,9 +18,11 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <body className={outfit.className}>
-        <div className="min-h-screen bg-gradient-to-br from-[rgb(var(--obsidian))] via-[rgb(var(--charcoal))] to-[rgb(var(--obsidian))]">
-          {children}
-        </div>
+        <AuthProvider>
+          <div className="min-h-screen bg-gradient-to-br from-[rgb(var(--obsidian))] via-[rgb(var(--charcoal))] to-[rgb(var(--obsidian))]">
+            {children}
+          </div>
+        </AuthProvider>
       </body>
     </html>
   );

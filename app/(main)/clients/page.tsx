@@ -1,195 +1,45 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { ClientsTable } from '@/components/clients/clients-table';
 import { ClientsFloatingControls } from '@/components/clients/clients-floating-controls';
 import { WorkTimeTracker } from '@/components/stream/work-time-tracker';
+import { useAuth } from '@/lib/auth-context';
 
-// Mock client data with Past 7 Days column and updated payday indicators
-const clientsData = [
-  {
-    id: 1,
-    name: 'Michael_VIP',
-    email: 'michael.vip@email.com',
-    phone: '+420 777 123 456',
-    assignedOperator: 'Isabella',
-    channel: 'FB',
-    summary: 'High-value client, prefers premium content, responsive to upsells',
-    paydayIndicator: '1st of month',
-    totalCollected: 12450,
-    past7Days: 890,
-    lastPayment: '2 days ago',
-    avgPayment: 285,
-    isVIP: true,
-    tags: ['VIP', '🔥 High Value'],
-    status: 'active',
-    riskLevel: 'low'
-  },
-  {
-    id: 2,
-    name: 'David_Elite',
-    email: 'david.elite@email.com',
-    phone: '+420 777 234 567',
-    assignedOperator: 'Sophia',
-    channel: 'Fanvue',
-    summary: 'Regular subscriber, consistent payments, good engagement',
-    paydayIndicator: '15th of month',
-    totalCollected: 8920,
-    past7Days: 420,
-    lastPayment: '1 day ago',
-    avgPayment: 195,
-    isVIP: false,
-    tags: ['Regular', 'Consistent'],
-    status: 'active',
-    riskLevel: 'low'
-  },
-  {
-    id: 3,
-    name: 'Alex_Pro',
-    email: 'alex.pro@email.com',
-    phone: '+420 777 345 678',
-    assignedOperator: 'Luna',
-    channel: 'FB',
-    summary: 'Chat-focused client, prefers conversation over content',
-    paydayIndicator: '7th of month',
-    totalCollected: 6780,
-    past7Days: 680,
-    lastPayment: '5 days ago',
-    avgPayment: 125,
-    isVIP: false,
-    tags: ['Chat Heavy', 'Weekly'],
-    status: 'active',
-    riskLevel: 'medium'
-  },
-  {
-    id: 4,
-    name: 'Robert_Gold',
-    email: 'robert.gold@email.com',
-    phone: '+420 777 456 789',
-    assignedOperator: 'Isabella',
-    channel: 'Fanvue',
-    summary: 'Premium content buyer, irregular payment schedule',
-    paydayIndicator: 'Irregular',
-    totalCollected: 15680,
-    past7Days: 0,
-    lastPayment: '12 days ago',
-    avgPayment: 420,
-    isVIP: true,
-    tags: ['VIP', 'Irregular', '🔥 risk'],
-    status: 'warning',
-    riskLevel: 'high'
-  },
-  {
-    id: 5,
-    name: 'James_VIP',
-    email: 'james.vip@email.com',
-    phone: '+420 777 567 890',
-    assignedOperator: 'Natalie',
-    channel: 'FB',
-    summary: 'Custom content specialist, high-value transactions',
-    paydayIndicator: '1st of month',
-    totalCollected: 22340,
-    past7Days: 1250,
-    lastPayment: '1 day ago',
-    avgPayment: 750,
-    isVIP: true,
-    tags: ['VIP', 'Custom Content', 'Vyplaty Dnes'],
-    status: 'active',
-    riskLevel: 'low'
-  },
-  {
-    id: 6,
-    name: 'Thomas_Standard',
-    email: 'thomas.std@email.com',
-    phone: '+420 777 678 901',
-    assignedOperator: 'Sarah',
-    channel: 'Fanvue',
-    summary: 'Standard subscriber, declining engagement recently',
-    paydayIndicator: '15th of month',
-    totalCollected: 3420,
-    past7Days: 0,
-    lastPayment: '18 days ago',
-    avgPayment: 85,
-    isVIP: false,
-    tags: ['Standard', 'Ghosts Fast', '🔥 risk'],
-    status: 'risk',
-    riskLevel: 'high'
-  },
-  {
-    id: 7,
-    name: 'Peter_Premium',
-    email: 'peter.premium@email.com',
-    phone: '+420 777 789 012',
-    assignedOperator: 'Emma',
-    channel: 'FB',
-    summary: 'Weekend spender, high momentum last 7 days',
-    paydayIndicator: '28th of month',
-    totalCollected: 5890,
-    past7Days: 1120,
-    lastPayment: '3 hours ago',
-    avgPayment: 165,
-    isVIP: false,
-    tags: ['Weekend Spender', 'Momentum'],
-    status: 'active',
-    riskLevel: 'low'
-  },
-  {
-    id: 8,
-    name: 'Martin_Whale',
-    email: 'martin.whale@email.com',
-    phone: '+420 777 890 123',
-    assignedOperator: 'Isabella',
-    channel: 'Fanvue',
-    summary: 'Top spender, exclusive content access, VIP treatment',
-    paydayIndicator: '30th of month',
-    totalCollected: 45680,
-    past7Days: 2340,
-    lastPayment: '6 hours ago',
-    avgPayment: 1250,
-    isVIP: true,
-    tags: ['VIP', 'Whale', 'Top Spender', 'Vyplaty Dnes'],
-    status: 'active',
-    riskLevel: 'low'
-  },
-  {
-    id: 9,
-    name: 'John_Regular',
-    email: 'john.regular@email.com',
-    phone: '+420 777 901 234',
-    assignedOperator: 'Luna',
-    channel: 'FB',
-    summary: 'Regular client with consistent spending patterns',
-    paydayIndicator: '5th of month',
-    totalCollected: 7850,
-    past7Days: 450,
-    lastPayment: '4 days ago',
-    avgPayment: 175,
-    isVIP: false,
-    tags: ['Regular', 'Consistent'],
-    status: 'active',
-    riskLevel: 'low'
-  },
-  {
-    id: 10,
-    name: 'William_New',
-    email: 'william.new@email.com',
-    phone: '+420 777 012 345',
-    assignedOperator: 'Sophia',
-    channel: 'Fanvue',
-    summary: 'New client with high potential, responsive to premium offers',
-    paydayIndicator: '10th of month',
-    totalCollected: 3200,
-    past7Days: 3200,
-    lastPayment: '1 day ago',
-    avgPayment: 320,
-    isVIP: false,
-    tags: ['New', 'Momentum'],
-    status: 'active',
-    riskLevel: 'low'
-  }
-];
+interface Client {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  assignedOperator: string;
+  operatorId: string | null;
+  modelName: string | null;
+  modelId: string | null;
+  channel: string;
+  summary: string;
+  payday: number | null;
+  paydayIndicator: string;
+  totalCollected: number;
+  past7Days: number;
+  lastPayment: string;
+  avgPayment: number;
+  isVIP: boolean;
+  tags: string[];
+  status: string;
+  riskLevel: string;
+  createdAt: string;
+  updatedAt: string;
+  profileUrl: string | null;
+}
+
+interface Operator {
+  id: string;
+  username: string;
+  role: string;
+}
 
 export default function Clients() {
+  const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilters, setActiveFilters] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState('totalCollected');
@@ -197,43 +47,184 @@ export default function Clients() {
   const [selectedModel, setSelectedModel] = useState('all');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [vipFilter, setVipFilter] = useState('all'); // 'all', 'vip-only', 'non-vip'
-  const [clients, setClients] = useState(clientsData);
+  const [clients, setClients] = useState<Client[]>([]);
+  const [operators, setOperators] = useState<Operator[]>([]);
+  const [allTags, setAllTags] = useState<string[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [timeBonus, setTimeBonus] = useState(288); // 144 minutes * 2 CZK = 288 CZK
 
-  // Get all unique tags from clients
-  const allTags = useMemo(() => {
-    const tags = new Set<string>();
-    clients.forEach(client => {
-      client.tags.forEach(tag => tags.add(tag));
-    });
-    return Array.from(tags).sort();
-  }, [clients]);
+  // Fetch clients from API
+  const fetchClients = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const response = await fetch('/api/clients');
+      if (!response.ok) {
+        throw new Error('Failed to fetch clients');
+      }
+      
+      const clientsData = await response.json();
+      setClients(clientsData);
+      
+      // Also fetch all tags
+      const tagsResponse = await fetch('/api/tags');
+      if (tagsResponse.ok) {
+        const tagsData = await tagsResponse.json();
+        setAllTags(tagsData.map((tag: any) => tag.label));
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Fetch operators for admin users
+  useEffect(() => {
+    if (user?.role === 'admin') {
+      fetch('/api/users')
+        .then(res => res.json())
+        .then(data => {
+          const operatorUsers = data.filter((u: any) => u.role === 'setter');
+          setOperators(operatorUsers);
+        })
+        .catch(err => {
+          console.error('Failed to fetch operators:', err);
+        });
+    }
+  }, [user]);
+
+  useEffect(() => {
+    fetchClients();
+  }, []);
+
+  // Update client operator
+  const updateClientOperator = async (clientId: string, operatorId: string) => {
+    try {
+      const response = await fetch(`/api/clients/${clientId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ assignedChatterId: operatorId })
+      });
+      
+      if (response.ok) {
+        // Refresh clients list
+        fetchClients();
+      }
+    } catch (error) {
+      console.error('Failed to update operator:', error);
+    }
+  };
+
+  // Update client payday
+  const updateClientPayday = async (clientId: string, payday: number) => {
+    try {
+      const response = await fetch(`/api/clients/${clientId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ payday })
+      });
+      
+      if (response.ok) {
+        // Update local state for immediate feedback
+        setClients(prev => prev.map(c => 
+          c.id === clientId ? { ...c, payday } : c
+        ));
+      }
+    } catch (error) {
+      console.error('Failed to update payday:', error);
+    }
+  };
 
   // Toggle VIP status for a client
-  const toggleVIPStatus = (clientId: number) => {
-    setClients(prev => prev.map(client => 
-      client.id === clientId 
-        ? { ...client, isVIP: !client.isVIP }
-        : client
-    ));
+  const toggleVIPStatus = async (clientId: string) => {
+    try {
+      const client = clients.find(c => c.id === clientId);
+      if (!client) return;
+
+      const response = await fetch(`/api/clients/${clientId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ isVIP: !client.isVIP }),
+      });
+
+      if (response.ok) {
+        const updatedClient = await response.json();
+        setClients(prev => prev.map(c => 
+          c.id === clientId ? updatedClient : c
+        ));
+      }
+    } catch (error) {
+      console.error('Error updating VIP status:', error);
+    }
   };
 
   // Update client tags
-  const updateClientTags = (clientId: number, newTags: string[]) => {
-    setClients(prev => prev.map(client => 
-      client.id === clientId 
-        ? { ...client, tags: newTags }
-        : client
-    ));
+  const updateClientTags = async (clientId: string, newTags: string[]) => {
+    try {
+      // Get current tags to determine what to add/remove
+      const client = clients.find(c => c.id === clientId);
+      if (!client) return;
+
+      const currentTags = client.tags;
+      const tagsToAdd = newTags.filter(tag => !currentTags.includes(tag));
+      const tagsToRemove = currentTags.filter(tag => !newTags.includes(tag));
+
+      // Add new tags
+      for (const tag of tagsToAdd) {
+        await fetch(`/api/clients/${clientId}/tags`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ label: tag }),
+        });
+      }
+
+      // Remove old tags
+      for (const tag of tagsToRemove) {
+        await fetch(`/api/clients/${clientId}/tags/${tag}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ action: 'remove' }),
+        });
+      }
+
+      // Update local state
+      setClients(prev => prev.map(c => 
+        c.id === clientId ? { ...c, tags: newTags } : c
+      ));
+    } catch (error) {
+      console.error('Error updating tags:', error);
+    }
   };
 
   // Update client summary
-  const updateClientSummary = (clientId: number, newSummary: string) => {
-    setClients(prev => prev.map(client => 
-      client.id === clientId 
-        ? { ...client, summary: newSummary }
-        : client
-    ));
+  const updateClientSummary = async (clientId: string, newSummary: string) => {
+    try {
+      const response = await fetch(`/api/clients/${clientId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ summary: newSummary }),
+      });
+
+      if (response.ok) {
+        const updatedClient = await response.json();
+        setClients(prev => prev.map(c => 
+          c.id === clientId ? updatedClient : c
+        ));
+      }
+    } catch (error) {
+      console.error('Error updating summary:', error);
+    }
   };
 
   const handleTimeUpdate = (totalMinutes: number, bonusAmount: number) => {
@@ -315,6 +306,42 @@ export default function Clients() {
     return filtered;
   }, [searchQuery, activeFilters, sortBy, sortOrder, selectedModel, selectedTags, vipFilter, clients]);
 
+  if (loading) {
+    return (
+      <div className="flex flex-col h-[calc(100vh-80px)]">
+        <div className="glow-card p-8 flex-1 mb-16">
+          <div className="flex items-center justify-center h-full">
+            <div className="text-center">
+              <div className="w-8 h-8 border-2 border-[rgb(var(--neon-orchid))] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+              <div className="text-[rgb(var(--muted-foreground))]">Loading clients...</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col h-[calc(100vh-80px)]">
+        <div className="glow-card p-8 flex-1 mb-16">
+          <div className="flex items-center justify-center h-full">
+            <div className="text-center">
+              <div className="text-red-400 mb-4">Error loading clients</div>
+              <div className="text-[rgb(var(--muted-foreground))] mb-4">{error}</div>
+              <button
+                onClick={() => window.location.reload()}
+                className="px-4 py-2 bg-[rgb(var(--neon-orchid))] text-white rounded-lg hover:bg-[rgb(var(--neon-orchid))]/80 transition-colors"
+              >
+                Retry
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col h-[calc(100vh-80px)]">
       {/* Clients Table - Fixed Height Container with Scrolling */}
@@ -334,7 +361,11 @@ export default function Clients() {
           onToggleVIP={toggleVIPStatus}
           onUpdateTags={updateClientTags}
           onUpdateSummary={updateClientSummary}
+          onUpdatePayday={updateClientPayday}
+          onUpdateOperator={updateClientOperator}
           allTags={allTags}
+          operators={operators}
+          user={user}
         />
       </div>
 

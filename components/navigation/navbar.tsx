@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { 
   BarChart3, 
   Users, 
@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { useAuth } from '@/lib/auth-context';
 
 // Restructured navigation with strategic groups - REMOVED OPERATORS
 const navigationGroups = [
@@ -49,19 +50,14 @@ const navigationGroups = [
 // Flatten for easy lookup
 const allNavItems = navigationGroups.flatMap(group => group.items);
 
-// Mock user data - in a real app, this would come from authentication
-const currentUser = {
-  name: 'Sarah Chen',
-  role: 'Admin',
-  avatar: 'https://images.pexels.com/photos/774909/pexels-photo-774909.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&dpr=1'
-};
-
 export function Navbar() {
   const [isVisible, setIsVisible] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const pathname = usePathname();
+  const router = useRouter();
+  const { user, logout } = useAuth();
 
   useEffect(() => {
     const controlNavbar = () => {
@@ -237,9 +233,9 @@ export function Navbar() {
                   className="flex items-center space-x-2 p-1 rounded-full hover:bg-[rgba(var(--velvet-gray),0.3)] transition-all duration-200"
                 >
                   <Avatar className="w-8 h-8 border-2 border-[rgba(var(--neon-orchid),0.3)]">
-                    <AvatarImage src={currentUser.avatar} alt={currentUser.name} />
+                    <AvatarImage src={user?.avatarUrl || ''} alt={user?.name || user?.username || 'User'} />
                     <AvatarFallback className="bg-gradient-to-br from-purple-500 to-pink-500 text-white text-xs">
-                      {currentUser.name.split(' ').map(n => n[0]).join('')}
+                      {user?.name ? user.name.split(' ').map((n: string) => n[0]).join('') : user?.username?.slice(0, 2).toUpperCase() || 'U'}
                     </AvatarFallback>
                   </Avatar>
                 </button>
@@ -248,8 +244,8 @@ export function Navbar() {
                 {isUserMenuOpen && (
                   <div className="absolute right-0 mt-2 w-48 rounded-lg bg-[rgba(var(--charcoal),0.95)] border border-[rgba(var(--neon-orchid),0.2)] backdrop-blur-sm shadow-xl z-50 animate-in fade-in-50 slide-in-from-top-5 duration-200">
                     <div className="p-3 border-b border-[rgba(var(--neon-orchid),0.1)]">
-                      <div className="font-medium text-[rgb(var(--foreground))]">{currentUser.name}</div>
-                      <div className="text-xs text-[rgb(var(--muted-foreground))]">{currentUser.role}</div>
+                      <div className="font-medium text-[rgb(var(--foreground))]">{user?.name || user?.username || 'User'}</div>
+                      <div className="text-xs text-[rgb(var(--muted-foreground))]">{user?.role || 'User'}</div>
                     </div>
                     <div className="p-2">
                       <Link 
@@ -262,10 +258,10 @@ export function Navbar() {
                       </Link>
                       <button 
                         className="w-full flex items-center space-x-2 px-3 py-2 rounded-md text-sm transition-all duration-200 text-red-400 hover:text-red-300 hover:bg-[rgba(var(--velvet-gray),0.3)]"
-                        onClick={() => {
+                        onClick={async () => {
                           setIsUserMenuOpen(false);
-                          // In a real app, this would trigger logout
-                          console.log('Logout clicked');
+                          await logout();
+                          router.push('/auth');
                         }}
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">

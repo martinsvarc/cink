@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { AccountCard } from '@/components/cashflow/account-card';
 import { TransactionTabs } from '@/components/cashflow/transaction-tabs';
 import { AddTransactionModal } from '@/components/cashflow/add-transaction-modal';
@@ -22,41 +22,15 @@ import {
   Plus
 } from 'lucide-react';
 
-// Mock account data - CONVERTED TO CZK
-const accountsData = [
-  {
-    id: 1,
-    name: 'Wise USD',
-    type: 'bank',
-    currentBalance: 1142012.50, // 45680.50 * 25
-    income: { today: 58500, week: 409500, month: 1710500, custom: 0 },
-    expenses: { today: 22250, week: 156000, month: 642000, custom: 0 }
-  },
-  {
-    id: 2,
-    name: 'Crypto Wallet',
-    type: 'crypto',
-    currentBalance: 723768.75, // 28950.75 * 25
-    income: { today: 39000, week: 273000, month: 1142000, custom: 0 },
-    expenses: { today: 8000, week: 56000, month: 242000, custom: 0 }
-  },
-  {
-    id: 3,
-    name: 'Bank CZ',
-    type: 'bank',
-    currentBalance: 308506.25, // 12340.25 * 25
-    income: { today: 19500, week: 136500, month: 586250, custom: 0 },
-    expenses: { today: 11250, week: 78750, month: 342000, custom: 0 }
-  },
-  {
-    id: 4,
-    name: 'PayPal Business',
-    type: 'paypal',
-    currentBalance: 223000.00, // 8920.00 * 25
-    income: { today: 10500, week: 73500, month: 317000, custom: 0 },
-    expenses: { today: 4500, week: 31500, month: 136250, custom: 0 }
-  }
-];
+// Account interface for TypeScript
+interface Account {
+  id: string;
+  name: string;
+  type: string;
+  currentBalance: number;
+  income: { today: number; week: number; month: number; custom: number };
+  expenses: { today: number; week: number; month: number; custom: number };
+}
 
 // Mock transaction data - CONVERTED TO CZK
 const incomeData = [
@@ -275,7 +249,30 @@ export default function Cashflow() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [addModalType, setAddModalType] = useState<'income' | 'expense' | 'transfer' | 'payout'>('income');
   const [showAIPanel, setShowAIPanel] = useState(false);
-  const [accounts, setAccounts] = useState(accountsData);
+  const [accounts, setAccounts] = useState<Account[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Fetch accounts from API
+  useEffect(() => {
+    fetchAccounts();
+  }, [timeframe]);
+
+  const fetchAccounts = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch(`/api/accounts?timeframe=${timeframe}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch accounts');
+      }
+      const data = await response.json();
+      setAccounts(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
+    } finally {
+      setLoading(false);
+    }
+  };
   const [showAddAccountModal, setShowAddAccountModal] = useState(false);
   const [chatters, setChatters] = useState(chatterEarningsData);
 
@@ -298,9 +295,9 @@ export default function Cashflow() {
   };
 
   // Calculate totals
-  const totalBalance = accounts.reduce((sum, account) => sum + account.currentBalance, 0);
-  const totalIncome = accounts.reduce((sum, account) => sum + account.income[timeframe as keyof typeof account.income], 0);
-  const totalExpenses = accounts.reduce((sum, account) => sum + account.expenses[timeframe as keyof typeof account.expenses], 0);
+  const totalBalance = accounts.reduce((sum: number, account: Account) => sum + account.currentBalance, 0);
+  const totalIncome = accounts.reduce((sum: number, account: Account) => sum + account.income[timeframe as keyof typeof account.income], 0);
+  const totalExpenses = accounts.reduce((sum: number, account: Account) => sum + account.expenses[timeframe as keyof typeof account.expenses], 0);
   
   // NEW: Calculate profit as INCOME - EXPENSES
   const totalProfit = totalIncome - totalExpenses;
@@ -323,25 +320,80 @@ export default function Cashflow() {
     console.log('Exporting to CSV...');
   };
 
-  const handleAddAccount = (newAccount: any) => {
-    setAccounts(prev => [...prev, { ...newAccount, id: Date.now() }]);
-    setShowAddAccountModal(false);
+  const handleAddAccount = async (newAccount: any) => {
+    try {
+      const response = await fetch('/api/accounts', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: newAccount.name,
+          type: newAccount.type,
+          balance: newAccount.currentBalance,
+          currency: 'CZK'
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to create account');
+      }
+
+      // Refresh accounts list
+      await fetchAccounts();
+      setShowAddAccountModal(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to create account');
+    }
   };
 
-  const handleUpdateAccount = (accountId: number, updatedBalance: number) => {
-    setAccounts(prev => prev.map(account => 
-      account.id === accountId 
-        ? { ...account, currentBalance: updatedBalance }
-        : account
-    ));
+  const handleUpdateAccount = async (accountId: string, updatedBalance: number) => {
+    try {
+      const response = await fetch('/api/accounts', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          id: accountId,
+          balance: updatedBalance
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update account');
+      }
+
+      // Refresh accounts list
+      await fetchAccounts();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update account');
+    }
   };
 
   const handleUpdateChatterPayoutDays = (chatterName: string, payoutDays: number[]) => {
-    setChatters(prev => prev.map(chatter => 
+    setChatters((prev: any) => prev.map((chatter: any) => 
       chatter.chatterName === chatterName 
         ? { ...chatter, payoutDays }
         : chatter
     ));
+  };
+
+  const handleDeleteAccount = async (accountId: string) => {
+    try {
+      const response = await fetch(`/api/accounts?id=${accountId}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete account');
+      }
+
+      // Refresh accounts list
+      await fetchAccounts();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to delete account');
+    }
   };
 
   return (
@@ -502,18 +554,53 @@ export default function Cashflow() {
             <span>Add Account</span>
           </button>
         </div>
+
+        {/* Error Message */}
+        {error && (
+          <div className="mb-6 p-4 bg-red-500/20 border border-red-500/50 rounded-lg">
+            <p className="text-red-400">{error}</p>
+            <button
+              onClick={() => setError(null)}
+              className="mt-2 text-sm text-red-300 hover:text-red-200 underline"
+            >
+              Dismiss
+            </button>
+          </div>
+        )}
         
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          {accounts.map((account) => (
-            <AccountCard
-              key={account.id}
-              account={account}
-              timeframe={timeframe}
-              onUpdateBalance={handleUpdateAccount}
-              editable={true}
-            />
-          ))}
-        </div>
+        {/* Accounts Grid */}
+        {loading ? (
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="h-64 bg-gradient-to-br from-[rgba(var(--charcoal),0.8)] to-[rgba(var(--charcoal),0.6)] rounded-xl animate-pulse" />
+            ))}
+          </div>
+        ) : accounts.length === 0 ? (
+          <div className="text-center py-12">
+            <Wallet className="w-16 h-16 text-[rgb(var(--muted-foreground))] mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-[rgb(var(--foreground))] mb-2">No accounts yet</h3>
+            <p className="text-[rgb(var(--muted-foreground))] mb-4">Get started by adding your first account</p>
+            <button
+              onClick={() => setShowAddAccountModal(true)}
+              className="px-6 py-2 bg-gradient-to-r from-[rgb(var(--neon-orchid))] to-[rgb(var(--crimson))] text-white rounded-lg hover:scale-105 transition-all duration-200"
+            >
+              Add Account
+            </button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            {accounts.map((account) => (
+              <AccountCard
+                key={account.id}
+                account={account}
+                timeframe={timeframe}
+                onUpdateBalance={handleUpdateAccount}
+                onDeleteAccount={handleDeleteAccount}
+                editable={true}
+              />
+            ))}
+          </div>
+        )}
       </div>
 
       {/* 4. NEW: Chatter's Wages Section - WITH EDITABLE PAYOUT DAYS */}

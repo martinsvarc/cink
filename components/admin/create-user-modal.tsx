@@ -21,17 +21,7 @@ const availablePages = [
   'Admin'
 ];
 
-const availableAbilities = [
-  'Edit Models',
-  'View Revenue',
-  'Manage Users',
-  'Export Data',
-  'System Settings',
-  'Add Transactions',
-  'Reset Passwords',
-  'View Analytics',
-  'Manage Payouts'
-];
+
 
 export function CreateUserModal({ isOpen, onClose, onCreateUser }: CreateUserModalProps) {
   const [formData, setFormData] = useState({
@@ -41,7 +31,6 @@ export function CreateUserModal({ isOpen, onClose, onCreateUser }: CreateUserMod
     role: 'Setter',
     viewOnlyAssignedData: true,
     accessToPages: [] as string[],
-    abilities: [] as string[],
     isActive: true,
     avatar: ''
   });
@@ -67,10 +56,6 @@ export function CreateUserModal({ isOpen, onClose, onCreateUser }: CreateUserMod
 
     if (formData.accessToPages.length === 0) {
       newErrors.accessToPages = 'At least one page access is required';
-    }
-
-    if (formData.abilities.length === 0) {
-      newErrors.abilities = 'At least one ability is required';
     }
 
     setErrors(newErrors);
@@ -102,7 +87,6 @@ export function CreateUserModal({ isOpen, onClose, onCreateUser }: CreateUserMod
       role: 'Setter',
       viewOnlyAssignedData: true,
       accessToPages: [],
-      abilities: [],
       isActive: true,
       avatar: ''
     });
@@ -120,14 +104,7 @@ export function CreateUserModal({ isOpen, onClose, onCreateUser }: CreateUserMod
     }));
   };
 
-  const toggleAbility = (ability: string) => {
-    setFormData(prev => ({
-      ...prev,
-      abilities: prev.abilities.includes(ability)
-        ? prev.abilities.filter(a => a !== ability)
-        : [...prev.abilities, ability]
-    }));
-  };
+
 
   const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -327,28 +304,7 @@ export function CreateUserModal({ isOpen, onClose, onCreateUser }: CreateUserMod
                 )}
               </div>
 
-              {/* Abilities */}
-              <div>
-                <label className="block text-sm font-medium text-[rgb(var(--foreground))] mb-2">
-                  Abilities *
-                </label>
-                <div className="space-y-2 max-h-40 overflow-y-auto p-2 rounded-lg bg-[rgba(var(--velvet-gray),0.2)] border border-[rgba(var(--neon-orchid),0.1)]">
-                  {availableAbilities.map((ability) => (
-                    <label key={ability} className="flex items-center space-x-2 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={formData.abilities.includes(ability)}
-                        onChange={() => toggleAbility(ability)}
-                        className="w-4 h-4 rounded border-[rgba(var(--neon-orchid),0.3)] bg-[rgba(var(--velvet-gray),0.5)] text-[rgb(var(--neon-orchid))] focus:ring-[rgba(var(--neon-orchid),0.5)]"
-                      />
-                      <span className="text-sm text-[rgb(var(--foreground))]">{ability}</span>
-                    </label>
-                  ))}
-                </div>
-                {errors.abilities && (
-                  <p className="text-red-400 text-xs mt-1">{errors.abilities}</p>
-                )}
-              </div>
+
             </div>
           </div>
 

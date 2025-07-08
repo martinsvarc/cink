@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { 
   ChevronUp, 
   ChevronDown, 
@@ -18,22 +18,41 @@ import {
 import { cn } from '@/lib/utils';
 
 interface Client {
-  id: number;
+  id: string;
   name: string;
-  email: string;
-  phone: string;
-  assignedOperator: string;
-  channel: string;
-  summary: string;
-  paydayIndicator: string;
+  email: string | null;
+  phone: string | null;
+  assignedOperator: string | null;
+  operatorId: string | null;
+  modelName: string | null;
+  modelId: string | null;
+  channel: string | null;
+  summary: string | null;
+  payday: number | null;
+  paydayIndicator: string | null;
   totalCollected: number;
   past7Days: number;
-  lastPayment: string;
+  lastPayment: string | null;
   avgPayment: number;
   isVIP: boolean;
   tags: string[];
   status: string;
   riskLevel: string;
+  createdAt: string;
+  updatedAt: string;
+  profileUrl: string | null;
+}
+
+interface Operator {
+  id: string;
+  username: string;
+  role: string;
+}
+
+interface AuthUser {
+  id: string;
+  username: string;
+  role: string;
 }
 
 interface ClientsTableProps {
@@ -41,10 +60,14 @@ interface ClientsTableProps {
   sortBy: string;
   sortOrder: 'asc' | 'desc';
   onSort: (field: string) => void;
-  onToggleVIP: (clientId: number) => void;
-  onUpdateTags: (clientId: number, tags: string[]) => void;
-  onUpdateSummary: (clientId: number, summary: string) => void;
+  onToggleVIP: (clientId: string) => void;
+  onUpdateTags: (clientId: string, tags: string[]) => void;
+  onUpdateSummary: (clientId: string, summary: string) => void;
+  onUpdatePayday: (clientId: string, payday: number) => void;
+  onUpdateOperator: (clientId: string, operatorId: string) => void;
   allTags: string[];
+  operators: Operator[];
+  user: AuthUser | null;
 }
 
 // Summary Modal Component
@@ -63,11 +86,11 @@ function SummaryModal({
   const [summaryText, setSummaryText] = useState(client?.summary || '');
 
   // Update summaryText when client changes
-  useState(() => {
+  useEffect(() => {
     if (client) {
-      setSummaryText(client.summary);
+      setSummaryText(client.summary || '');
     }
-  });
+  }, [client]);
 
   const handleSave = () => {
     if (client) {
@@ -145,11 +168,11 @@ function TagEditorModal({
   const [newTag, setNewTag] = useState('');
 
   // Update selectedTags when client changes
-  useState(() => {
+  useEffect(() => {
     if (client) {
       setSelectedTags(client.tags);
     }
-  });
+  }, [client]);
 
   const addTag = (tag: string) => {
     if (!selectedTags.includes(tag)) {
@@ -279,9 +302,13 @@ export function ClientsTable({
   onToggleVIP, 
   onUpdateTags, 
   onUpdateSummary,
-  allTags 
+  onUpdatePayday,
+  onUpdateOperator,
+  allTags,
+  operators,
+  user
 }: ClientsTableProps) {
-  const [hoveredRow, setHoveredRow] = useState<number | null>(null);
+  const [hoveredRow, setHoveredRow] = useState<string | null>(null);
   const [summaryModal, setSummaryModal] = useState<{ isOpen: boolean; client: Client | null }>({
     isOpen: false,
     client: null
@@ -371,10 +398,10 @@ export function ClientsTable({
               <th className="w-[180px] px-3 py-2 text-left text-xs font-semibold text-[rgb(var(--foreground))] uppercase tracking-wider">
                 <SortButton field="name">Client Name</SortButton>
               </th>
-              <th className="w-[120px] px-3 py-2 text-left text-xs font-semibold text-[rgb(var(--foreground))] uppercase tracking-wider">
+              <th className="w-[160px] px-3 py-2 text-left text-xs font-semibold text-[rgb(var(--foreground))] uppercase tracking-wider">
                 <SortButton field="assignedOperator">Operator</SortButton>
               </th>
-              <th className="w-[120px] px-3 py-2 text-left text-xs font-semibold text-[rgb(var(--foreground))] uppercase tracking-wider">
+              <th className="w-[110px] px-3 py-2 text-left text-xs font-semibold text-[rgb(var(--foreground))] uppercase tracking-wider">
                 <SortButton field="model">Model</SortButton>
               </th>
               <th className="w-[80px] px-3 py-2 text-left text-xs font-semibold text-[rgb(var(--foreground))] uppercase tracking-wider">
@@ -429,13 +456,24 @@ export function ClientsTable({
                     )}></div>
                     
                     <div className="w-6 h-6 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
-                      {client.name.charAt(0)}
+                      {client.name ? client.name.charAt(0) : '?'}
                     </div>
                     
                     <div className="min-w-0 flex-1">
-                      <button className="text-sm font-medium text-[rgb(var(--foreground))] hover:text-[rgb(var(--neon-orchid))] transition-colors truncate block w-full text-left">
-                        {client.name}
-                      </button>
+                      {client.profileUrl ? (
+                        <a 
+                          href={client.profileUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-sm font-medium text-[rgb(var(--foreground))] hover:text-[rgb(var(--neon-orchid))] transition-colors truncate block w-full text-left underline"
+                        >
+                          {client.name}
+                        </a>
+                      ) : (
+                        <span className="text-sm font-medium text-[rgb(var(--foreground))] truncate block w-full text-left">
+                          {client.name}
+                        </span>
+                      )}
                     </div>
                   </div>
                 </td>
@@ -444,19 +482,36 @@ export function ClientsTable({
                 <td className="px-3 py-2 h-12">
                   <div className="flex items-center space-x-2 h-full">
                     <div className="w-5 h-5 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
-                      {client.assignedOperator.charAt(0)}
+                      {client.assignedOperator ? client.assignedOperator.charAt(0) : '?'}
                     </div>
-                    <span className="text-sm text-[rgb(var(--foreground))] truncate">{client.assignedOperator}</span>
+                    {user?.role === 'admin' ? (
+                      <select 
+                        value={client.operatorId || ''}
+                        onChange={(e) => onUpdateOperator(client.id, e.target.value)}
+                        className="bg-[rgba(var(--velvet-gray),0.5)] border border-[rgba(var(--neon-orchid),0.2)] rounded px-2 py-1 text-sm text-[rgb(var(--foreground))] focus:outline-none focus:border-[rgba(var(--neon-orchid),0.5)] hover:border-[rgba(var(--neon-orchid),0.3)]"
+                      >
+                        <option value="">Unassigned</option>
+                        {operators.map(op => (
+                          <option key={op.id} value={op.id}>{op.username}</option>
+                        ))}
+                      </select>
+                    ) : (
+                      <span className="text-sm text-[rgb(var(--foreground))] truncate">
+                        {client.assignedOperator || 'Unassigned'}
+                      </span>
+                    )}
                   </div>
                 </td>
 
-                {/* Model - NEW COLUMN */}
+                {/* Model */}
                 <td className="px-3 py-2 h-12">
                   <div className="flex items-center space-x-2 h-full">
                     <div className="w-5 h-5 rounded-full bg-gradient-to-br from-pink-500 to-purple-500 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
-                      {client.assignedOperator.charAt(0)}
+                      {client.modelName ? client.modelName.charAt(0) : 'M'}
                     </div>
-                    <span className="text-sm text-[rgb(var(--foreground))] truncate">{client.assignedOperator}</span>
+                    <span className="text-sm text-[rgb(var(--foreground))] truncate">
+                      {client.modelName || 'No Model'}
+                    </span>
                   </div>
                 </td>
 
@@ -486,10 +541,12 @@ export function ClientsTable({
                   </div>
                 </td>
 
-                {/* Payday - Just Number */}
+                {/* Payday - Simple Number */}
                 <td className="px-3 py-2 h-12">
                   <div className="flex items-center h-full">
-                    <span className="text-sm text-[rgb(var(--foreground))]">{extractPaydayNumber(client.paydayIndicator)}</span>
+                    <span className="text-sm font-bold text-gradient-gold">
+                      {client.payday || '-'}
+                    </span>
                   </div>
                 </td>
 
@@ -519,7 +576,9 @@ export function ClientsTable({
                 {/* Last Payment */}
                 <td className="px-3 py-2 h-12">
                   <div className="flex items-center h-full">
-                    <div className="text-sm text-[rgb(var(--foreground))] truncate">{client.lastPayment}</div>
+                    <div className="text-sm text-[rgb(var(--foreground))] truncate">
+                      {client.lastPayment || 'Nikdy'}
+                    </div>
                   </div>
                 </td>
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { X, Save, Plus, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -8,6 +8,8 @@ interface AddModelModalProps {
   isOpen: boolean;
   onClose: () => void;
   onAddModel: (model: any) => void;
+  editingModel?: any; // Model data for editing
+  isEditing?: boolean; // Whether we're in edit mode
 }
 
 const availableOperators = [
@@ -36,7 +38,7 @@ const commonTags = [
   'Luxury', 'Girl Next Door', 'Teasing', 'Nurturing', 'Intellectual'
 ];
 
-export function AddModelModal({ isOpen, onClose, onAddModel }: AddModelModalProps) {
+export function AddModelModal({ isOpen, onClose, onAddModel, editingModel, isEditing = false }: AddModelModalProps) {
   const [formData, setFormData] = useState({
     name: '',
     assignedOperator: availableOperators[0],
@@ -55,7 +57,36 @@ export function AddModelModal({ isOpen, onClose, onAddModel }: AddModelModalProp
     isActive: true
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Pre-fill form data when editing
+  useEffect(() => {
+    if (isEditing && editingModel) {
+      setFormData({
+        name: editingModel.name || '',
+        assignedOperator: editingModel.assignedOperator || availableOperators[0],
+        personalityTags: editingModel.personalityTags || [],
+        story: editingModel.story || '',
+        todayActivity: editingModel.todayActivity || '',
+        contentLink: editingModel.contentLink || '',
+        channels: editingModel.channels || []
+      });
+    } else {
+      // Reset form for adding new model
+      setFormData({
+        name: '',
+        assignedOperator: availableOperators[0],
+        personalityTags: [],
+        story: '',
+        todayActivity: '',
+        contentLink: '',
+        channels: []
+      });
+    }
+  }, [isEditing, editingModel, isOpen]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!formData.name.trim()) {
@@ -63,27 +94,55 @@ export function AddModelModal({ isOpen, onClose, onAddModel }: AddModelModalProp
       return;
     }
 
-    onAddModel(formData);
-    
-    // Reset form
-    setFormData({
-      name: '',
-      assignedOperator: availableOperators[0],
-      personalityTags: [],
-      story: '',
-      todayActivity: '',
-      contentLink: '',
-      channels: []
-    });
-    setNewTag('');
-    setNewChannel({
-      name: '',
-      platform: availablePlatforms[0],
-      assignedOperator: availableOperators[0].name,
-      isActive: true
-    });
-    
-    onClose();
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const url = isEditing ? `/api/models/${editingModel.id}` : '/api/models';
+      const method = isEditing ? 'PATCH' : 'POST';
+
+      const response = await fetch(url, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || `Failed to ${isEditing ? 'update' : 'create'} model`);
+      }
+
+      // Call the parent's callback with the created/updated model
+      onAddModel(data.model);
+      
+      // Reset form
+      setFormData({
+        name: '',
+        assignedOperator: availableOperators[0],
+        personalityTags: [],
+        story: '',
+        todayActivity: '',
+        contentLink: '',
+        channels: []
+      });
+      setNewTag('');
+      setNewChannel({
+        name: '',
+        platform: availablePlatforms[0],
+        assignedOperator: availableOperators[0].name,
+        isActive: true
+      });
+      
+      onClose();
+    } catch (err) {
+      console.error(`Error ${isEditing ? 'updating' : 'creating'} model:`, err);
+      setError(err instanceof Error ? err.message : `Failed to ${isEditing ? 'update' : 'create'} model`);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const addTag = (tag: string) => {
@@ -139,7 +198,9 @@ export function AddModelModal({ isOpen, onClose, onAddModel }: AddModelModalProp
       <div className="relative w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-xl bg-[rgba(var(--charcoal),0.95)] border border-[rgba(var(--neon-orchid),0.3)] backdrop-blur-sm shadow-2xl">
         <form onSubmit={handleSubmit} className="p-6">
           <div className="flex items-center justify-between mb-6">
-            <h3 className="text-2xl font-bold text-[rgb(var(--foreground))]">Add New Model</h3>
+            <h3 className="text-2xl font-bold text-[rgb(var(--foreground))]">
+              {isEditing ? 'Edit Model' : 'Add New Model'}
+            </h3>
             <button
               type="button"
               onClick={onClose}
@@ -148,6 +209,13 @@ export function AddModelModal({ isOpen, onClose, onAddModel }: AddModelModalProp
               <X className="w-6 h-6" />
             </button>
           </div>
+
+          {/* Error Display */}
+          {error && (
+            <div className="mb-4 p-4 rounded-lg bg-red-500/20 border border-red-500/30 text-red-400">
+              {error}
+            </div>
+          )}
 
           <div className="grid grid-cols-2 gap-6">
             {/* Left Column */}
@@ -379,10 +447,16 @@ export function AddModelModal({ isOpen, onClose, onAddModel }: AddModelModalProp
             </button>
             <button
               type="submit"
-              className="flex items-center space-x-2 px-6 py-2 rounded-lg bg-gradient-to-r from-[rgb(var(--neon-orchid))] to-[rgb(var(--crimson))] text-white font-medium hover:scale-105 transition-all duration-200"
+              disabled={isLoading}
+              className="flex items-center space-x-2 px-6 py-2 rounded-lg bg-gradient-to-r from-[rgb(var(--neon-orchid))] to-[rgb(var(--crimson))] text-white font-medium hover:scale-105 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
             >
               <Save className="w-4 h-4" />
-              <span>Create Model</span>
+              <span>
+                {isLoading 
+                  ? (isEditing ? 'Updating...' : 'Creating...')
+                  : (isEditing ? 'Update Model' : 'Create Model')
+                }
+              </span>
             </button>
           </div>
         </form>

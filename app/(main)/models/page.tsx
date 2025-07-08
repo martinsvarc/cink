@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { ModelCard } from '@/components/models/model-card';
 import { AddModelModal } from '@/components/models/add-model-modal';
 import { WorkTimeTracker } from '@/components/stream/work-time-tracker';
@@ -183,6 +183,60 @@ export default function Models() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [models, setModels] = useState(modelsData);
   const [timeBonus, setTimeBonus] = useState(288); // 144 minutes * 2 CZK = 288 CZK
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [editingModel, setEditingModel] = useState<any>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [modelToDelete, setModelToDelete] = useState<any>(null);
+
+  // Load models from API
+  const loadModels = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      
+      const response = await fetch('/api/models');
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to load models');
+      }
+
+      // Transform API data to match UI format
+      const transformedModels = data.models.map((model: any) => ({
+        id: model.id,
+        name: model.name,
+        assignedOperator: {
+          name: 'Sarah Chen', // Default for now, can be enhanced later
+          avatar: 'SC'
+        },
+        personalityTags: model.persona?.tags || [],
+        story: model.persona?.description || '',
+        todayActivity: model.persona?.statusNote || '',
+        contentLink: '', // Not stored in DB yet
+        channels: model.channels.map((channel: any) => ({
+          id: channel.id,
+          name: channel.channelName,
+          platform: channel.platform,
+          assignedOperator: 'Sarah Chen', // Default for now
+          isActive: channel.active
+        }))
+      }));
+
+      setModels(transformedModels);
+    } catch (err) {
+      console.error('Error loading models:', err);
+      setError(err instanceof Error ? err.message : 'Failed to load models');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Load models on component mount
+  useEffect(() => {
+    loadModels();
+  }, []);
 
   // Update model story
   const updateModelStory = (modelId: number, newStory: string) => {
@@ -269,17 +323,58 @@ export default function Models() {
     ));
   };
 
-  // Add new model
+  // Add new model - now called after successful API creation
   const addModel = (newModel: any) => {
-    const model = {
-      ...newModel,
-      id: Date.now(),
-      channels: newModel.channels.map((channel: any, index: number) => ({
-        ...channel,
-        id: Date.now() + index
-      }))
-    };
-    setModels(prev => [...prev, model]);
+    // Reload models from API to get the latest data
+    loadModels();
+  };
+
+  // Handle editing a model
+  const handleEditModel = (model: any) => {
+    setEditingModel(model);
+    setIsEditing(true);
+    setShowAddModal(true);
+  };
+
+  // Handle deleting a model
+  const handleDeleteModel = (model: any) => {
+    setModelToDelete(model);
+    setShowDeleteConfirm(true);
+  };
+
+  // Confirm deletion
+  const confirmDelete = async () => {
+    if (!modelToDelete) return;
+
+    try {
+      setIsLoading(true);
+      const response = await fetch(`/api/models/${modelToDelete.id}`, {
+        method: 'DELETE',
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to delete model');
+      }
+
+      // Reload models after successful deletion
+      loadModels();
+      setShowDeleteConfirm(false);
+      setModelToDelete(null);
+    } catch (err) {
+      console.error('Error deleting model:', err);
+      setError(err instanceof Error ? err.message : 'Failed to delete model');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Handle modal close
+  const handleModalClose = () => {
+    setShowAddModal(false);
+    setEditingModel(null);
+    setIsEditing(false);
   };
 
   // Delete model
@@ -372,7 +467,11 @@ export default function Models() {
         {/* Add Model Button - Only show in edit mode */}
         {editMode && (
           <button
-            onClick={() => setShowAddModal(true)}
+            onClick={() => {
+              setEditingModel(null);
+              setIsEditing(false);
+              setShowAddModal(true);
+            }}
             className="flex items-center space-x-2 px-6 py-3 rounded-lg bg-gradient-to-r from-[rgb(var(--neon-orchid))] to-[rgb(var(--crimson))] text-white font-medium hover:scale-105 transition-all duration-200 shadow-lg"
           >
             <Plus className="w-4 h-4" />
@@ -381,42 +480,94 @@ export default function Models() {
         )}
       </div>
 
-      {/* Models Grid - Clean Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-        {filteredModels.map((model) => (
-          <ModelCard
-            key={model.id}
-            model={model}
-            expandChannels={expandChannels}
-            editMode={editMode}
-            onUpdateStory={updateModelStory}
-            onUpdateTodayActivity={updateTodayActivity}
-            onUpdatePersonalityTags={updatePersonalityTags}
-            onUpdateContentLink={updateContentLink}
-            onUpdateAssignedOperator={updateAssignedOperator}
-            onToggleChannelStatus={toggleChannelStatus}
-            onAddChannel={addChannel}
-            onRemoveChannel={removeChannel}
-            onDeleteModel={deleteModel}
-          />
-        ))}
-      </div>
-      
-      {/* Empty State */}
-      {filteredModels.length === 0 && (
-        <div className="text-center py-12">
-          <Crown className="w-16 h-16 text-[rgb(var(--muted-foreground))] mx-auto mb-4 opacity-50" />
-          <div className="text-[rgb(var(--muted-foreground))] text-lg mb-2">No models found</div>
-          <div className="text-[rgb(var(--muted-foreground))] text-sm">Try adjusting your search</div>
+      {/* Error Display */}
+      {error && (
+        <div className="mb-6 p-4 rounded-lg bg-red-500/20 border border-red-500/30 text-red-400">
+          {error}
         </div>
       )}
 
-      {/* Add Model Modal */}
+      {/* Loading State */}
+      {isLoading && (
+        <div className="text-center py-12">
+          <div className="text-[rgb(var(--muted-foreground))] text-lg">Loading models...</div>
+        </div>
+      )}
+
+      {/* Models Grid - Clean Layout */}
+      {!isLoading && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+          {filteredModels.map((model) => (
+            <ModelCard
+              key={model.id}
+              model={model}
+              expandChannels={expandChannels}
+              editMode={editMode}
+              onUpdateStory={updateModelStory}
+              onUpdateTodayActivity={updateTodayActivity}
+              onUpdatePersonalityTags={updatePersonalityTags}
+              onUpdateContentLink={updateContentLink}
+              onUpdateAssignedOperator={updateAssignedOperator}
+              onToggleChannelStatus={toggleChannelStatus}
+                          onAddChannel={addChannel}
+            onRemoveChannel={removeChannel}
+            onDeleteModel={handleDeleteModel}
+            onEditModel={handleEditModel}
+            />
+          ))}
+        </div>
+      )}
+      
+      {/* Empty State */}
+      {!isLoading && filteredModels.length === 0 && !error && (
+        <div className="text-center py-12">
+          <Crown className="w-16 h-16 text-[rgb(var(--muted-foreground))] mx-auto mb-4 opacity-50" />
+          <div className="text-[rgb(var(--muted-foreground))] text-lg mb-2">No models found</div>
+          <div className="text-[rgb(var(--muted-foreground))] text-sm">
+            {searchQuery ? 'Try adjusting your search' : 'Add your first model to get started'}
+          </div>
+        </div>
+      )}
+
+
+      {/* Add/Edit Model Modal */}
       <AddModelModal
         isOpen={showAddModal}
-        onClose={() => setShowAddModal(false)}
+        onClose={handleModalClose}
         onAddModel={addModel}
+        editingModel={editingModel}
+        isEditing={isEditing}
       />
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowDeleteConfirm(false)} />
+          <div className="relative bg-[rgba(var(--charcoal),0.95)] border border-[rgba(var(--neon-orchid),0.3)] rounded-xl p-6 max-w-md w-full">
+            <h3 className="text-xl font-bold text-[rgb(var(--foreground))] mb-4">
+              Delete Model
+            </h3>
+            <p className="text-[rgb(var(--muted-foreground))] mb-6">
+              Are you sure you want to delete "{modelToDelete?.name}"? This action cannot be undone.
+            </p>
+            <div className="flex items-center justify-end space-x-3">
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                className="px-4 py-2 rounded-lg text-[rgb(var(--muted-foreground))] hover:text-[rgb(var(--foreground))] hover:bg-[rgba(var(--velvet-gray),0.5)] transition-all duration-200"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDelete}
+                disabled={isLoading}
+                className="px-4 py-2 rounded-lg bg-red-500 text-white hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+              >
+                {isLoading ? 'Deleting...' : 'Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Controls - Bottom Right */}
       <div className="fixed bottom-6 right-6 z-50 flex flex-col space-y-3">

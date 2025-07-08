@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { EditUserModal } from './edit-user-modal';
 import { 
   Edit3, 
   RotateCcw, 
@@ -17,12 +16,11 @@ import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 interface User {
-  id: number;
+  id: string;
   username: string;
   role: string;
   viewOnlyAssignedData: boolean;
   accessToPages: string[];
-  abilities: string[];
   lastLogin: string;
   isActive: boolean;
   avatar?: string;
@@ -30,10 +28,11 @@ interface User {
 
 interface UserManagementTableProps {
   users: User[];
-  onEditUser: (userId: number, updatedData: any) => void;
-  onResetPassword: (userId: number) => void;
-  onRemoveUser: (userId: number) => void;
-  onUpdateAvatar: (userId: number, avatarUrl: string) => void;
+  onEditUser: (userId: string, updatedData: any) => void;
+  onResetPassword: (userId: string) => void;
+  onRemoveUser: (userId: string) => void;
+  onUpdateAvatar: (userId: string, avatarUrl: string) => void;
+  onEditUserClick: (user: User) => void;
 }
 
 export function UserManagementTable({ 
@@ -41,10 +40,10 @@ export function UserManagementTable({
   onEditUser, 
   onResetPassword, 
   onRemoveUser,
-  onUpdateAvatar
+  onUpdateAvatar,
+  onEditUserClick
 }: UserManagementTableProps) {
-  const [editingUser, setEditingUser] = useState<User | null>(null);
-  const [avatarUploadId, setAvatarUploadId] = useState<number | null>(null);
+  const [avatarUploadId, setAvatarUploadId] = useState<string | null>(null);
 
   const getRoleColor = (role: string) => {
     switch (role.toLowerCase()) {
@@ -78,7 +77,7 @@ export function UserManagementTable({
     });
   };
 
-  const handleAvatarUpload = (userId: number, e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAvatarUpload = (userId: string, e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -111,9 +110,6 @@ export function UserManagementTable({
               </th>
               <th className="px-4 py-3 text-left text-xs font-semibold text-[rgb(var(--foreground))] uppercase tracking-wider">
                 Access to Pages
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-[rgb(var(--foreground))] uppercase tracking-wider">
-                Abilities
               </th>
               <th className="px-4 py-3 text-left text-xs font-semibold text-[rgb(var(--foreground))] uppercase tracking-wider">
                 Last Login
@@ -263,24 +259,7 @@ export function UserManagementTable({
                   </div>
                 </td>
 
-                {/* Abilities */}
-                <td className="px-4 py-3">
-                  <div className="flex flex-wrap gap-1 max-w-xs">
-                    {user.abilities.slice(0, 2).map((ability, index) => (
-                      <span
-                        key={index}
-                        className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-[rgba(var(--neon-orchid),0.2)] text-[rgb(var(--neon-orchid))] border border-[rgba(var(--neon-orchid),0.3)]"
-                      >
-                        {ability}
-                      </span>
-                    ))}
-                    {user.abilities.length > 2 && (
-                      <span className="text-xs text-[rgb(var(--muted-foreground))]">
-                        +{user.abilities.length - 2} more
-                      </span>
-                    )}
-                  </div>
-                </td>
+
 
                 {/* Last Login */}
                 <td className="px-4 py-3">
@@ -296,7 +275,7 @@ export function UserManagementTable({
                 <td className="px-4 py-3">
                   <div className="flex items-center justify-center space-x-2">
                     <button
-                      onClick={() => setEditingUser(user)}
+                      onClick={() => onEditUserClick(user)}
                       className="p-1 text-[rgb(var(--muted-foreground))] hover:text-[rgb(var(--neon-orchid))] transition-colors"
                       title="Edit user"
                     >
@@ -309,13 +288,6 @@ export function UserManagementTable({
                     >
                       <RotateCcw className="w-4 h-4" />
                     </button>
-                    <button
-                      onClick={() => onRemoveUser(user.id)}
-                      className="p-1 text-[rgb(var(--muted-foreground))] hover:text-red-400 transition-colors"
-                      title="Remove user"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
                   </div>
                 </td>
               </tr>
@@ -324,18 +296,7 @@ export function UserManagementTable({
         </table>
       </div>
 
-      {/* Edit User Modal */}
-      {editingUser && (
-        <EditUserModal
-          user={editingUser}
-          isOpen={!!editingUser}
-          onClose={() => setEditingUser(null)}
-          onSave={(updatedData) => {
-            onEditUser(editingUser.id, updatedData);
-            setEditingUser(null);
-          }}
-        />
-      )}
+
     </>
   );
 }

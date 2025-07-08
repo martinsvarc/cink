@@ -1,10 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { UserManagementTable } from '@/components/admin/user-management-table';
 import { RevenueSettingsTable } from '@/components/admin/revenue-settings-table';
 import { PerformanceGoalsWidget } from '@/components/admin/performance-goals-widget';
 import { CreateUserModal } from '@/components/admin/create-user-modal';
+import { EditUserModal } from '@/components/admin/edit-user-modal';
 import { 
   Settings,
   Users,
@@ -14,217 +15,181 @@ import {
   Target
 } from 'lucide-react';
 
-// Mock user data with avatar field added
-const usersData = [
-  {
-    id: 1,
-    username: 'sarah.chen',
-    role: 'Admin',
-    viewOnlyAssignedData: false,
-    accessToPages: ['Dashboard', 'Analytics', 'Cashflow', 'Clients', 'Models', 'Admin'],
-    abilities: ['Edit Models', 'View Revenue', 'Manage Users', 'Export Data', 'System Settings'],
-    lastLogin: '2024-01-15 14:23',
-    isActive: true,
-    avatar: 'https://images.pexels.com/photos/774909/pexels-photo-774909.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&dpr=1'
-  },
-  {
-    id: 2,
-    username: 'isabella.operator',
-    role: 'Setter',
-    viewOnlyAssignedData: true,
-    accessToPages: ['Dashboard', 'Stream', 'Clients', 'Models'],
-    abilities: ['Edit Models', 'View Revenue', 'Add Transactions'],
-    lastLogin: '2024-01-15 13:45',
-    isActive: true,
-    avatar: 'https://images.pexels.com/photos/1239291/pexels-photo-1239291.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&dpr=1'
-  },
-  {
-    id: 3,
-    username: 'sophia.operator',
-    role: 'Setter',
-    viewOnlyAssignedData: true,
-    accessToPages: ['Dashboard', 'Stream', 'Clients'],
-    abilities: ['View Revenue', 'Add Transactions'],
-    lastLogin: '2024-01-15 12:30',
-    isActive: true,
-    avatar: 'https://images.pexels.com/photos/1065084/pexels-photo-1065084.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&dpr=1'
-  },
-  {
-    id: 4,
-    username: 'luna.operator',
-    role: 'Setter',
-    viewOnlyAssignedData: true,
-    accessToPages: ['Dashboard', 'Stream', 'Clients'],
-    abilities: ['View Revenue', 'Add Transactions'],
-    lastLogin: '2024-01-14 18:20',
-    isActive: false,
-    avatar: 'https://images.pexels.com/photos/1036623/pexels-photo-1036623.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&dpr=1'
-  },
-  {
-    id: 5,
-    username: 'emma.manager',
-    role: 'Admin',
-    viewOnlyAssignedData: false,
-    accessToPages: ['Dashboard', 'Analytics', 'Cashflow', 'Clients', 'Models'],
-    abilities: ['Edit Models', 'View Revenue', 'Export Data'],
-    lastLogin: '2024-01-15 09:15',
-    isActive: true,
-    avatar: 'https://images.pexels.com/photos/733872/pexels-photo-733872.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&dpr=1'
-  }
-];
 
-// Mock revenue settings data
-const revenueSettingsData = [
-  {
-    id: 1,
-    user: 'Isabella',
-    defaultChatCommission: 20,
-    hourlyPay: 120,
-    milestoneBonus: {
-      '125000': 2,
-      '250000': 4,
-      '375000': 6,
-      '500000': 8
-    },
-    weekendBonus: 1.5,
-    wildcardBonus: 2.0
-  },
-  {
-    id: 2,
-    user: 'Sophia',
-    defaultChatCommission: 18,
-    hourlyPay: 120,
-    milestoneBonus: {
-      '125000': 2,
-      '250000': 4,
-      '375000': 6,
-      '500000': 8
-    },
-    weekendBonus: 1.5,
-    wildcardBonus: 2.0
-  },
-  {
-    id: 3,
-    user: 'Luna',
-    defaultChatCommission: 22,
-    hourlyPay: 120,
-    milestoneBonus: {
-      '125000': 2,
-      '250000': 4,
-      '375000': 6,
-      '500000': 8
-    },
-    weekendBonus: 1.5,
-    wildcardBonus: 2.0
-  },
-  {
-    id: 4,
-    user: 'Sarah',
-    defaultChatCommission: 19,
-    hourlyPay: 120,
-    milestoneBonus: {
-      '125000': 2,
-      '250000': 4,
-      '375000': 6,
-      '500000': 8
-    },
-    weekendBonus: 1.5,
-    wildcardBonus: 2.0
-  },
-  {
-    id: 5,
-    user: 'Emma',
-    defaultChatCommission: 21,
-    hourlyPay: 120,
-    milestoneBonus: {
-      '125000': 2,
-      '250000': 4,
-      '375000': 6,
-      '500000': 8
-    },
-    weekendBonus: 1.5,
-    wildcardBonus: 2.0
-  }
-];
 
-// Mock performance goals data
-const performanceGoalsData = {
-  daily: {
-    chattingRevenueGoal: 50000,
-    profitGoal: 35000,
-    enabled: true
-  },
-  weekly: {
-    chattingRevenueGoal: 350000,
-    profitGoal: 245000,
-    enabled: true
-  },
-  monthly: {
-    chattingRevenueGoal: 1500000,
-    profitGoal: 1050000,
-    enabled: false
-  }
-};
+// Revenue settings will be fetched from API
 
 export default function Admin() {
-  const [users, setUsers] = useState(usersData);
-  const [revenueSettings, setRevenueSettings] = useState(revenueSettingsData);
-  const [performanceGoals, setPerformanceGoals] = useState(performanceGoalsData);
+  const [users, setUsers] = useState<any[]>([]);
+  const [revenueSettings, setRevenueSettings] = useState<any[]>([]);
+  const [performanceGoals, setPerformanceGoals] = useState<any>({
+    daily: { chattingRevenueGoal: 0, profitGoal: 0, enabled: true },
+    weekly: { chattingRevenueGoal: 0, profitGoal: 0, enabled: true },
+    monthly: { chattingRevenueGoal: 0, profitGoal: 0, enabled: true }
+  });
   const [showCreateUserModal, setShowCreateUserModal] = useState(false);
+  const [editingUser, setEditingUser] = useState<any | null>(null);
+  const [loadingRevenue, setLoadingRevenue] = useState(false);
+  const [loadingGoals, setLoadingGoals] = useState(false);
+  const [hasGoalChanges, setHasGoalChanges] = useState(false);
+  const [originalGoals, setOriginalGoals] = useState<any>({});
+  const [savingGoals, setSavingGoals] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
+
+  // Fetch users from database
+  useEffect(() => {
+    fetch('/api/users')
+      .then(res => res.json())
+      .then(data => setUsers(data))
+      .catch(error => console.error('Error fetching users:', error));
+  }, []);
+
+  // Fetch revenue settings from database
+  useEffect(() => {
+    setLoadingRevenue(true);
+    fetch('/api/revenue-settings')
+      .then(res => res.json())
+      .then(data => setRevenueSettings(data))
+      .catch(error => console.error('Error fetching revenue settings:', error))
+      .finally(() => setLoadingRevenue(false));
+  }, []);
+
+  // Fetch performance goals from database
+  useEffect(() => {
+    setLoadingGoals(true);
+    fetch('/api/performance-goals')
+      .then(res => res.json())
+      .then(data => {
+        setPerformanceGoals(data);
+        setOriginalGoals(data);
+      })
+      .catch(error => console.error('Error fetching performance goals:', error))
+      .finally(() => setLoadingGoals(false));
+  }, []);
 
   // User Management Functions
-  const handleCreateUser = (userData: any) => {
-    const newUser = {
-      ...userData,
-      id: Date.now(),
-      lastLogin: 'Never',
-      isActive: true
-    };
-    setUsers(prev => [...prev, newUser]);
+  const handleCreateUser = async (userData: any) => {
+    try {
+      const response = await fetch('/api/users', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(userData),
+      });
+
+      if (response.ok) {
+        const newUser = await response.json();
+        setUsers(prev => [...prev, newUser]);
+        setShowCreateUserModal(false);
+      } else {
+        const error = await response.json();
+        alert(error.error || 'Failed to create user');
+      }
+    } catch (error) {
+      console.error('Error creating user:', error);
+      alert('Failed to create user');
+    }
   };
 
-  const handleEditUser = (userId: number, updatedData: any) => {
+  const handleEditUser = (userId: string, updatedUser: any) => {
     setUsers(prev => prev.map(user => 
-      user.id === userId ? { ...user, ...updatedData } : user
+      user.id === userId ? updatedUser : user
     ));
   };
 
-  const handleResetPassword = (userId: number) => {
+  const handleResetPassword = (userId: string) => {
     // In a real app, this would trigger a password reset
     console.log('Resetting password for user:', userId);
     alert('Password reset email sent!');
   };
 
-  const handleRemoveUser = (userId: number) => {
-    if (window.confirm('Are you sure you want to remove this user?')) {
-      setUsers(prev => prev.filter(user => user.id !== userId));
-    }
+  const handleRemoveUser = (userId: string) => {
+    // Remove user from local state (API call is handled by EditUserModal)
+    setUsers(prev => prev.filter(user => user.id !== userId));
   };
 
-  const handleUpdateAvatar = (userId: number, avatarUrl: string) => {
+  const handleUpdateAvatar = (userId: string, avatarUrl: string) => {
     setUsers(prev => prev.map(user => 
       user.id === userId ? { ...user, avatar: avatarUrl } : user
     ));
   };
 
   // Revenue Settings Functions
-  const handleUpdateRevenueSetting = (userId: number, field: string, value: any) => {
-    setRevenueSettings(prev => prev.map(setting => 
-      setting.id === userId 
-        ? { ...setting, [field]: value }
-        : setting
-    ));
+  const handleUpdateRevenueSetting = async (setting: any) => {
+    try {
+      const response = await fetch(`/api/revenue-settings/${setting.chatterId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          defaultCommission: setting.defaultChatCommission,
+          hourlyRate: setting.hourlyPay,
+          milestoneTiers: setting.milestoneBonus,
+          weekendBonusMultiplier: setting.weekendBonus,
+          wildcardBonusMultiplier: setting.wildcardBonus,
+        }),
+      });
+
+      if (response.ok) {
+        const updatedSetting = await response.json();
+        setRevenueSettings(prev => prev.map((s: any) => 
+          s.userId === setting.userId ? updatedSetting : s
+        ));
+      } else {
+        const error = await response.json();
+        alert(error.error || 'Failed to update revenue setting');
+      }
+    } catch (error) {
+      console.error('Error updating revenue setting:', error);
+      alert('Failed to update revenue setting');
+    }
   };
 
   // Performance Goals Functions
   const handleUpdatePerformanceGoal = (period: string, field: string, value: any) => {
-    setPerformanceGoals(prev => ({
+    setPerformanceGoals((prev: any) => ({
       ...prev,
       [period]: {
-        ...prev[period as keyof typeof prev],
+        ...(prev[period as keyof typeof prev] || {}),
         [field]: value
       }
     }));
+    setHasGoalChanges(true);
+  };
+
+  // Save performance goals to database
+  const handleSavePerformanceGoals = async () => {
+    setSavingGoals(true);
+    try {
+      const response = await fetch('/api/performance-goals', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ goals: performanceGoals }),
+      });
+
+      if (response.ok) {
+        setOriginalGoals(performanceGoals);
+        setHasGoalChanges(false);
+        setSaveSuccess(true);
+        
+        // Auto-hide success message after 3 seconds
+        setTimeout(() => {
+          setSaveSuccess(false);
+        }, 3000);
+      } else {
+        const error = await response.json();
+        alert(error.error || 'Failed to save performance goals');
+      }
+    } catch (error) {
+      console.error('Error saving performance goals:', error);
+      alert('Failed to save performance goals');
+    } finally {
+      setSavingGoals(false);
+    }
   };
 
   return (
@@ -274,6 +239,7 @@ export default function Admin() {
             onResetPassword={handleResetPassword}
             onRemoveUser={handleRemoveUser}
             onUpdateAvatar={handleUpdateAvatar}
+            onEditUserClick={setEditingUser}
           />
         </div>
       </div>
@@ -299,6 +265,7 @@ export default function Admin() {
           <RevenueSettingsTable
             settings={revenueSettings}
             onUpdateSetting={handleUpdateRevenueSetting}
+            loading={loadingRevenue}
           />
         </div>
       </div>
@@ -321,10 +288,17 @@ export default function Admin() {
 
         {/* Performance Goals Widget */}
         <div className="glow-card p-0 overflow-hidden">
-          <PerformanceGoalsWidget
-            goals={performanceGoals}
-            onUpdateGoal={handleUpdatePerformanceGoal}
-          />
+          {loadingGoals ? (
+            <div className="p-6 text-center">
+              <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-[rgb(var(--neon-orchid))]"></div>
+              <p className="mt-2 text-[rgb(var(--muted-foreground))]">Loading performance goals...</p>
+            </div>
+          ) : (
+            <PerformanceGoalsWidget
+              goals={performanceGoals}
+              onUpdateGoal={handleUpdatePerformanceGoal}
+            />
+          )}
         </div>
       </div>
 
@@ -334,6 +308,61 @@ export default function Admin() {
         onClose={() => setShowCreateUserModal(false)}
         onCreateUser={handleCreateUser}
       />
+
+      {/* Edit User Modal - At root level for proper positioning */}
+      {editingUser && (
+        <EditUserModal
+          user={editingUser}
+          isOpen={!!editingUser}
+          onClose={() => setEditingUser(null)}
+          onSave={(updatedUser) => {
+            handleEditUser(editingUser.id, updatedUser);
+            setEditingUser(null);
+          }}
+          onDelete={(userId) => {
+            handleRemoveUser(userId);
+            setEditingUser(null);
+          }}
+        />
+      )}
+
+      {/* Save Goals Button - Fixed Position */}
+      {(hasGoalChanges || savingGoals) && (
+        <div className="fixed bottom-6 right-6 z-50">
+          <button
+            onClick={handleSavePerformanceGoals}
+            disabled={savingGoals}
+            className="flex items-center space-x-2 px-6 py-3 rounded-lg bg-gradient-to-r from-[rgb(var(--neon-orchid))] to-[rgb(var(--crimson))] text-white font-medium hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+          >
+            {savingGoals ? (
+              <>
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                <span>Saving...</span>
+              </>
+            ) : (
+              <>
+                <Target className="w-5 h-5" />
+                <span>Save Performance Goals</span>
+              </>
+            )}
+          </button>
+        </div>
+      )}
+
+      {/* Success Notification */}
+      {saveSuccess && (
+        <div className="fixed bottom-6 right-6 z-50 animate-bounce">
+          <div className="flex items-center space-x-2 px-6 py-3 rounded-lg bg-green-500 text-white font-medium shadow-lg">
+            <div className="w-5 h-5 rounded-full bg-white flex items-center justify-center">
+              <svg className="w-3 h-3 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <span>Performance Goals Saved!</span>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

@@ -10,12 +10,13 @@ import {
   Building,
   Edit3,
   Save,
-  X
+  X,
+  Trash2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface Account {
-  id: number;
+  id: string;
   name: string;
   type: string;
   currentBalance: number;
@@ -26,11 +27,12 @@ interface Account {
 interface AccountCardProps {
   account: Account;
   timeframe: string;
-  onUpdateBalance?: (accountId: number, newBalance: number) => void;
+  onUpdateBalance?: (accountId: string, newBalance: number) => void;
+  onDeleteAccount?: (accountId: string) => void;
   editable?: boolean;
 }
 
-export function AccountCard({ account, timeframe, onUpdateBalance, editable = false }: AccountCardProps) {
+export function AccountCard({ account, timeframe, onUpdateBalance, onDeleteAccount, editable = false }: AccountCardProps) {
   const [isHovered, setIsHovered] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editedBalance, setEditedBalance] = useState(account.currentBalance.toString());
@@ -89,12 +91,18 @@ export function AccountCard({ account, timeframe, onUpdateBalance, editable = fa
     setEditedBalance(account.currentBalance.toString());
   };
 
+  const handleDeleteAccount = () => {
+    if (onDeleteAccount && confirm(`Are you sure you want to delete the account "${account.name}"?`)) {
+      onDeleteAccount(account.id);
+    }
+  };
+
   const Icon = getAccountIcon();
 
   return (
     <div 
       className={cn(
-        'glow-card p-5 transition-all duration-300 cursor-pointer relative overflow-hidden',
+        'glow-card p-5 transition-all duration-300 cursor-pointer relative overflow-hidden group',
         isHovered && !isEditing && 'transform scale-105 shadow-2xl'
       )}
       onMouseEnter={() => setIsHovered(true)}
@@ -109,10 +117,21 @@ export function AccountCard({ account, timeframe, onUpdateBalance, editable = fa
           <Icon className="w-6 h-6 text-white" />
         </div>
         
-        {/* Account Type Badge */}
-        <span className="px-2 py-1 rounded-full text-xs font-medium bg-[rgba(var(--velvet-gray),0.3)] text-[rgb(var(--muted-foreground))] border border-[rgba(var(--velvet-gray),0.5)]">
-          {account.type.toUpperCase()}
-        </span>
+        {/* Account Type Badge and Actions */}
+        <div className="flex items-center space-x-2">
+          <span className="px-2 py-1 rounded-full text-xs font-medium bg-[rgba(var(--velvet-gray),0.3)] text-[rgb(var(--muted-foreground))] border border-[rgba(var(--velvet-gray),0.5)]">
+            {account.type.toUpperCase()}
+          </span>
+          {editable && onDeleteAccount && (
+            <button
+              onClick={handleDeleteAccount}
+              className="p-1 rounded-full bg-[rgba(var(--crimson),0.2)] text-[rgb(var(--crimson))] hover:bg-[rgba(var(--crimson),0.3)] transition-all duration-200 opacity-0 group-hover:opacity-100"
+              style={{ opacity: isHovered ? 1 : 0 }}
+            >
+              <Trash2 className="w-3 h-3" />
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Account Name */}

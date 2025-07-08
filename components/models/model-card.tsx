@@ -56,6 +56,7 @@ interface ModelCardProps {
   onAddChannel: (modelId: number, channel: any) => void;
   onRemoveChannel: (modelId: number, channelId: number) => void;
   onDeleteModel: (modelId: number) => void;
+  onEditModel: (model: Model) => void;
 }
 
 // Story Modal Component
@@ -238,7 +239,8 @@ export function ModelCard({
   onToggleChannelStatus,
   onAddChannel,
   onRemoveChannel,
-  onDeleteModel
+  onDeleteModel,
+  onEditModel
 }: ModelCardProps) {
   const [storyModal, setStoryModal] = useState(false);
   const [activityModal, setActivityModal] = useState(false);
@@ -294,15 +296,24 @@ export function ModelCard({
       'glow-card p-6 space-y-6 relative',
       editMode && 'border-2 border-[rgba(var(--neon-orchid),0.4)]'
     )}>
-      {/* Delete Button - Only in Edit Mode */}
+      {/* Edit and Delete Buttons - Only in Edit Mode */}
       {editMode && (
-        <button
-          onClick={handleDeleteModel}
-          className="absolute top-4 right-4 p-2 rounded-lg bg-red-500/20 text-red-400 hover:bg-red-500/30 transition-all duration-200"
-          title="Delete Model"
-        >
-          <Trash2 className="w-4 h-4" />
-        </button>
+        <div className="absolute top-4 right-4 flex items-center space-x-2">
+          <button
+            onClick={() => onEditModel(model)}
+            className="p-2 rounded-lg bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 transition-all duration-200"
+            title="Edit Model"
+          >
+            <Edit3 className="w-4 h-4" />
+          </button>
+          <button
+            onClick={handleDeleteModel}
+            className="p-2 rounded-lg bg-red-500/20 text-red-400 hover:bg-red-500/30 transition-all duration-200"
+            title="Delete Model"
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
+        </div>
       )}
 
       {/* Model Header - Enhanced for Edit Mode */}
